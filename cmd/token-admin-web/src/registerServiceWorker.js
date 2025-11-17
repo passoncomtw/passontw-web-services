@@ -8,7 +8,8 @@
 // To learn more about the benefits of this model, read https://goo.gl/KwvDNy.
 // This link also includes instructions on opting out of this behavior.
 
-const { NODE_ENV, PUBLIC_URL } = process.env;
+const { NODE_ENV, REACT_APP_BASE_PATH } = process.env;
+console.log("🚀 ~ register ~ REACT_APP_BASE_PATH:", REACT_APP_BASE_PATH)
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
@@ -23,16 +24,16 @@ const isLocalhost = Boolean(
 export default function register() {
   if (NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW.
-    const publicUrl = new URL(PUBLIC_URL, window.location);
+    const publicUrl = new URL(REACT_APP_BASE_PATH, window.location);
     if (publicUrl.origin !== window.location.origin) {
-      // Our service worker won't work if PUBLIC_URL is on a different origin
+      // Our service worker won't work if REACT_APP_BASE_PATH is on a different origin
       // from what our page is served on. This might happen if a CDN is used to
       // serve assets; see https://github.com/facebookincubator/create-react-app/issues/2374
       return;
     }
 
     window.addEventListener('load', () => {
-      const swUrl = `${PUBLIC_URL}/service-worker.js`;
+      const swUrl = `${REACT_APP_BASE_PATH}/service-worker.js`;
 
       if (isLocalhost) {
         // This is running on localhost. Lets check if a service worker still exists or not.

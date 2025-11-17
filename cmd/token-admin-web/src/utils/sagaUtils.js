@@ -37,19 +37,24 @@ export default function* fetchAPIResult({
 }) {
   try {
     const token = yield select(({ auth }) => auth.get('token'));
-    const { result } = yield call(apiResult, {
-      customHeaders: { Authorization: `Bearer ${token}`, ...headers },
-      payload,
-    });
-
-    if (isFunction(resultHandler)) {
-      return yield put(okFetch(resultHandler(result.data), action, message));
+    const customHeaders = { ...headers };
+    if (token) {
+      customHeaders.Authorization = `Bearer ${token}`;
     }
 
-    yield put(okFetch(result.data, action, message));
+    const resp = yield call(apiResult, {
+      customHeaders,
+      payload,
+    });
+    const { data } = resp;
+    if (isFunction(resultHandler)) {
+      return yield put(okFetch(resultHandler(data), action, message));
+    }
+
+    yield put(okFetch(data, action, message));
     if (onSuccess) onSuccess();
   } catch (error) {
-    yield put(errFetch(error.data, action));
-    if (onError) onError();
+    yield put(errFetch(error, action));
+    if (onError) onError(error);
   }
 }

@@ -2,15 +2,20 @@ import { authState } from './initialState';
 import types from '../constants/actionTypes';
 import { fromJS } from 'immutable';
 import { saveLoginUser, removeLoginUser } from '~/store/localStorage';
+import deepClone from 'lodash/cloneDeep';
 
 export const loginSuccess = (auth, payload) => {
-  const { token, user } = payload;
+  // API 返回的是 access_token 而不是 token
+  const { access_token, user } = payload;
   const userData = {
-    token,
+    token: access_token, // 將 access_token 存為 token
     info: {
       userName: user.name,
+      userId: user.id,
+      account: user.account,
+      type: user.type,
     },
-    permissions: user.permissions,
+    permissions: user.permissions || [], // API 可能不返回 permissions，設定預設值
   };
   saveLoginUser(userData);
   return auth.merge(
@@ -28,7 +33,7 @@ const logoutSuccess = auth =>
 
 const initialWebAppSuccess = auth => auth.update('isInitial', () => true);
 
-export default function reducer(auth = authState, { type, payload }) {
+export default function reducer(auth = deepClone(authState), { type, payload }) {
   switch (type) {
     case types.INITIAL_WEB_APP_SUCCESS:
       return initialWebAppSuccess(auth);

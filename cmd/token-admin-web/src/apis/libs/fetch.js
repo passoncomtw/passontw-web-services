@@ -43,20 +43,7 @@ const parseResponse = response => {
   if ([500, 404].includes(statusCode)) {
     throw getErrorFormat(statusCode, SERVER_ERROR_MSG);
   }
-
-  return response.text().then(body => {
-    const bodyResult = isEmpty(body) ? {} : JSON.parse(body);
-    const code = getResponseCode(responseOK, statusCode, bodyResult);
-    const ok = validateCode(code);
-    const result = { ...bodyResult, code };
-    if (!ok) throw result;
-
-    return {
-      statusCode,
-      ok,
-      result,
-    };
-  });
+  return response.json();
 };
 
 export const fetchGet = (url, customHeaders) => {
