@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt 生產環境伺服器
+    server: https://acme-v02.api.letsencrypt.org/directory
+    
+    # 用於接收證書到期通知的郵件地址（請修改為您的郵箱）
+    email: passon.com.tw@gmail.com
+    
+    # 用於存儲 ACME 帳戶私鑰的 Secret 名稱
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    
+    # 使用 HTTP-01 challenge 驗證域名所有權
+    solvers:
+    - http01:
+        ingress:
+          class: traefik
+

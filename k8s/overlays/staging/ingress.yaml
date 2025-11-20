@@ -8,7 +8,8 @@ metadata:
     kubernetes.io/ingress.class: "traefik"
     
     # Cert-manager annotations - 自動申請和更新 Let's Encrypt 證書
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Staging 環境使用 staging 伺服器，避免觸及生產環境速率限制
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
     
     # Traefik 配置 - 強制 HTTPS 重定向
     traefik.ingress.kubernetes.io/redirect-entry-point: https
