@@ -74,35 +74,13 @@ jobs:
       - name: Build Frontend Application
         run: |
           echo "🔨 構建前端應用..."
-          
-          # 根據環境設置不同的 API 端點
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            API_BASE_PATH="https://api.passon.tw/"
-          else
-            API_BASE_PATH="https://token-admin-api.passon.tw/"
-          fi
-          
-          echo "📍 API Base Path: ${API_BASE_PATH}"
-          
-          # 使用 Makefile 構建
-          make build REACT_APP_BASE_PATH="${API_BASE_PATH}"
-          
-          # 驗證構建產物
-          if [ ! -d "cmd/token-admin-web/build" ]; then
-            echo "❌ 構建失敗：找不到 build 目錄"
-            exit 1
-          fi
-          
+          echo ${{ secrets.DEV_ENV }} >> .env
+          cd cmd/token-admin-web && yarn install && yarn build
           echo "✅ 前端構建完成"
 
-      - name: Build and Push Docker Image
+      - name: Build Docker Image
         run: |
-          IMAGE_FULL="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          TAG="${{ steps.set-tag.outputs.image_tag }}"
-          FLOATING_TAG="${{ steps.set-tag.outputs.floating_tag }}"
-          
-          echo "🐳 構建 Docker 鏡像: $IMAGE_FULL:$TAG"
-          
+          cd deploy/token-admin-web && docker build -t "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.set-tag.outputs.image_tag }}" .
           # 構建精簡的 nginx 鏡像
           docker build \
             --file ./deploy/token-admin-web/Dockerfile \
