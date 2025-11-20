@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node modules（本機構建策略不需要）
+**/node_modules
+
+# 開發相關
+**/.env.local
+**/.env.*.local
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 測試
+**/coverage
+**/.nyc_output
+**/test-results
+
+# 文檔
+*.md
+!README.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# 其他源代碼（僅保留 build 產物和配置）
+# 保留 cmd/token-admin-web/build/
+cmd/token-admin-web/src
+cmd/token-admin-web/public
+cmd/token-admin-web/node_modules
+cmd/token-admin-web/.env*
+cmd/token-admin-web/yarn.lock
+cmd/token-admin-web/package.json
+
+# K8s 配置（Docker 構建不需要）
+k8s/
+
+# 其他
+tmp/
+temp/
+*.log
+

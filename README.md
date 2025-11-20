@@ -70,7 +70,8 @@
 
 ### 前置需求
 
-- Node.js 16+
+- Node.js 16+ (本地開發)
+  - Docker 構建使用 Node.js 17（完整支援 `--openssl-legacy-provider`）
 - Yarn 或 npm
 - Docker (用於本地測試)
 - kubectl (用於部署)
@@ -102,12 +103,30 @@ yarn start
 
 ### 構建生產版本
 
+**方式 1：使用 Makefile（推薦）**
+
+```bash
+# 完整構建流程（安裝依賴 -> 構建 -> Docker 打包）
+make build-all
+
+# 或分步執行
+make install          # 安裝依賴
+make build           # 構建應用
+make build-docker    # 打包 Docker 鏡像
+
+# 環境特定構建
+make build-staging      # 構建 Staging 環境
+make build-production   # 構建 Production 環境
+```
+
+**方式 2：手動構建**
+
 ```bash
 cd cmd/token-admin-web
 yarn build
 ```
 
-構建產物將輸出到 `build/` 目錄。
+構建產物將輸出到 `cmd/token-admin-web/build/` 目錄。
 
 ---
 
@@ -414,7 +433,9 @@ kubectl top nodes
 
 **問題：** `error:0308010C:digital envelope routines::unsupported`
 
-**解決方案：** 使用 `NODE_OPTIONS=--openssl-legacy-provider`
+**原因：** 舊版 webpack 與 OpenSSL 3.0 不相容
+
+**解決方案 1：** 本地開發使用 `NODE_OPTIONS`
 
 ```json
 {
@@ -424,6 +445,25 @@ kubectl top nodes
   }
 }
 ```
+
+**解決方案 2：** Docker 構建使用 Node.js 17
+
+```dockerfile
+# 使用 Node.js 17（完整支援 --openssl-legacy-provider）
+# Node 16 某些版本不支援此選項
+FROM node:17 AS builder
+
+# 構建時啟用 legacy provider
+RUN node --openssl-legacy-provider ./node_modules/.bin/react-app-rewired build
+```
+
+**版本說明：**
+- **本地開發：** 使用 Node.js 16+ 配合 `NODE_OPTIONS=--openssl-legacy-provider`
+- **Docker 構建：** 使用 Node.js 17，確保完整支援 `--openssl-legacy-provider` 選項
+- **最終部署：** 多階段構建確保最終鏡像仍然精簡（約 50MB）
+
+**為什麼 Docker 使用 Node.js 17？**
+Node.js 16 在 `--openssl-legacy-provider` 選項的支援上存在相容性問題，某些版本不支援該選項。Node.js 17 是第一個完全穩定支援此選項的版本，確保構建過程的可靠性。
 
 #### 部署失敗
 

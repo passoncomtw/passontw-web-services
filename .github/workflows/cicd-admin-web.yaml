@@ -64,13 +64,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16'
+          cache: 'yarn'
+          cache-dependency-path: cmd/token-admin-web/yarn.lock
+
+      - name: Build Frontend Application
         run: |
-          IMAGE_FULL="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          TAG="${{ steps.set-tag.outputs.image_tag }}"
-          FLOATING_TAG="${{ steps.set-tag.outputs.floating_tag }}"
-          
-          echo "Building image: $IMAGE_FULL:$TAG"
+          echo "🔨 構建前端應用..."
           
           # 根據環境設置不同的 API 端點
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
@@ -79,18 +82,43 @@ jobs:
             API_BASE_PATH="https://token-admin-api.passon.tw/"
           fi
           
+          echo "📍 API Base Path: ${API_BASE_PATH}"
+          
+          # 使用 Makefile 構建
+          make build REACT_APP_BASE_PATH="${API_BASE_PATH}"
+          
+          # 驗證構建產物
+          if [ ! -d "cmd/token-admin-web/build" ]; then
+            echo "❌ 構建失敗：找不到 build 目錄"
+            exit 1
+          fi
+          
+          echo "✅ 前端構建完成"
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_FULL="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          TAG="${{ steps.set-tag.outputs.image_tag }}"
+          FLOATING_TAG="${{ steps.set-tag.outputs.floating_tag }}"
+          
+          echo "🐳 構建 Docker 鏡像: $IMAGE_FULL:$TAG"
+          
+          # 構建精簡的 nginx 鏡像
           docker build \
             --file ./deploy/token-admin-web/Dockerfile \
-            --build-arg REACT_APP_BASE_PATH="${API_BASE_PATH}" \
             --tag "$IMAGE_FULL:$TAG" \
             --tag "$IMAGE_FULL:$FLOATING_TAG" \
             .
           
-          echo "Pushing images..."
+          echo "📤 推送鏡像..."
           docker push "$IMAGE_FULL:$TAG"
           docker push "$IMAGE_FULL:$FLOATING_TAG"
           
-          echo "✅ Build and push completed"
+          # 顯示鏡像大小
+          echo "📊 鏡像大小："
+          docker images "$IMAGE_FULL:$TAG" --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+          
+          echo "✅ Docker 鏡像構建並推送完成"
 
   deploy:
     runs-on: mac-mini-build

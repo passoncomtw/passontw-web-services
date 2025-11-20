@@ -16,24 +16,54 @@ deploy/
 
 ## Token Admin Web
 
-### 構建鏡像
+### 構建流程
+
+本專案採用**兩階段構建策略**：
+1. **本機構建** - 在本機執行 `yarn build`，生成靜態資源
+2. **Docker 打包** - 將靜態資源打包到精簡的 nginx 鏡像中
+
+**優勢：**
+- ✅ 避免 Docker 內 Node.js 版本相容性問題
+- ✅ 使用本地開發環境（Node 16）構建
+- ✅ 最終鏡像極度精簡（僅 nginx + 靜態文件，約 15-20MB）
+- ✅ 構建速度更快（利用本地快取）
+
+### 使用 Makefile 構建（推薦）
 
 ```bash
 # 從專案根目錄執行
 cd /path/to/passontw-web-services
 
-# 構建 Staging 鏡像
-docker build \
-  -f deploy/token-admin-web/Dockerfile \
-  --build-arg REACT_APP_BASE_PATH=https://token-admin-api.passon.tw/ \
-  -t ghcr.io/passontw/token-admin-web:develop-latest \
-  .
+# 完整構建流程（推薦）
+make build-all
 
-# 構建 Production 鏡像
+# 或分步執行
+make install          # 安裝依賴
+make build           # 構建前端應用
+make build-docker    # 打包 Docker 鏡像
+
+# 環境特定構建
+make docker-staging      # Staging 環境完整構建
+make docker-production   # Production 環境完整構建
+```
+
+### 手動構建
+
+```bash
+# 1. 構建前端應用
+cd cmd/token-admin-web
+
+# Staging 環境
+REACT_APP_BASE_PATH=https://token-admin-api.passon.tw/ yarn build
+
+# Production 環境
+REACT_APP_BASE_PATH=https://api.passon.tw/ yarn build
+
+# 2. 構建 Docker 鏡像
+cd ../..
 docker build \
   -f deploy/token-admin-web/Dockerfile \
-  --build-arg REACT_APP_BASE_PATH=https://api.passon.tw/ \
-  -t ghcr.io/passontw/token-admin-web:main-latest \
+  -t ghcr.io/passontw/token-admin-web:develop-latest \
   .
 ```
 
@@ -75,25 +105,47 @@ docker rm token-admin-web-test
 
 ## 鏡像構建說明
 
-### 多階段構建
+### 構建策略
 
-Token Admin Web 使用多階段構建來優化鏡像大小：
+Token Admin Web 採用**本機構建 + Docker 打包**策略：
 
-1. **Stage 1: Builder**
-   - 基於 `node:16-alpine`
-   - 安裝依賴並構建 React 應用
-   - 使用 `--openssl-legacy-provider` 解決 Node.js v16+ 相容性問題
+**本機構建階段：**
+- 使用本地 Node.js 環境（推薦 Node 16）
+- 執行 `yarn install` 和 `yarn build`
+- 生成靜態資源到 `cmd/token-admin-web/build/`
+- 利用本地快取加速構建
 
-2. **Stage 2: Production**
-   - 基於 `nginx:alpine`
-   - 僅複製構建產物和 Nginx 配置
-   - 最終鏡像大小約 50MB
+**Docker 打包階段：**
+- 基於 `nginx:alpine`（最精簡的 nginx 基礎鏡像）
+- 僅複製構建產物和 Nginx 配置
+- 無需 Node.js 相關依賴
+- **最終鏡像大小：約 15-20MB** 🎉
 
-### 構建參數
+### 與傳統多階段構建的對比
 
-| 參數 | 說明 | 預設值 |
+| 項目 | 傳統多階段構建 | 本機構建 + Docker 打包 |
+|------|--------------|---------------------|
+| **構建環境** | Docker 內（node:17） | 本機（node:16） |
+| **構建速度** | 較慢（每次重新安裝依賴） | 快（利用本地快取） |
+| **最終鏡像大小** | ~50MB | **~15-20MB** |
+| **Node.js 版本問題** | 需處理相容性 | 使用本地環境，無相容性問題 |
+| **CI/CD 複雜度** | 簡單（單一 Dockerfile） | 中等（需先構建再打包） |
+
+### 環境變數
+
+| 變數 | 說明 | 預設值 |
 |------|------|--------|
 | `REACT_APP_BASE_PATH` | 後端 API 基礎路徑 | `https://token-admin-api.passon.tw/` |
+
+**設定方式：**
+
+```bash
+# Makefile（推薦）
+make build REACT_APP_BASE_PATH=https://api.passon.tw/
+
+# 手動設定
+REACT_APP_BASE_PATH=https://api.passon.tw/ yarn build
+```
 
 ### 健康檢查
 
@@ -195,10 +247,29 @@ paths:
 
 **問題：** `error:0308010C:digital envelope routines::unsupported`
 
-**解決方案：** 使用 `NODE_OPTIONS=--openssl-legacy-provider`
+**原因：** 舊版 webpack 與 OpenSSL 3.0 不相容
 
-```dockerfile
-RUN NODE_OPTIONS=--openssl-legacy-provider yarn build
+**解決方案：** 使用本機構建策略（已實現）
+
+由於採用**本機構建 + Docker 打包**策略，此問題已經完全避免：
+
+1. ✅ 在本機使用 Node.js 16 構建（配合 `NODE_OPTIONS=--openssl-legacy-provider`）
+2. ✅ Docker 僅負責打包靜態資源，無需處理 Node.js 版本問題
+3. ✅ 最終鏡像極度精簡（15-20MB）
+
+**如果本機構建失敗：**
+
+```bash
+# 確保 package.json 中已設定 NODE_OPTIONS
+# cmd/token-admin-web/package.json
+{
+  "scripts": {
+    "build": "NODE_OPTIONS=--openssl-legacy-provider react-app-rewired build"
+  }
+}
+
+# 使用 Makefile 構建
+make build
 ```
 
 ### 運行時錯誤
