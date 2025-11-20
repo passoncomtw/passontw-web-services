@@ -23,36 +23,24 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.set-tag.outputs.image_tag }}
-      environment: ${{ steps.set-env.outputs.environment }}
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Determine environment
+      - name: Set environment
         id: set-env
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "namespace=passontw-services-production" >> $GITHUB_OUTPUT
-            echo "📍 Environment: Production"
-          else
-            echo "environment=staging" >> $GITHUB_OUTPUT
-            echo "namespace=passontw-services-staging" >> $GITHUB_OUTPUT
-            echo "📍 Environment: Staging"
-          fi
+          echo "environment=staging" >> $GITHUB_OUTPUT
+          echo "namespace=passontw-services-staging" >> $GITHUB_OUTPUT
+          echo "📍 Environment: Staging"
 
       - name: Set image tag
         id: set-tag
         run: |
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            TAG="main-${SHORT_SHA}"
-            FLOATING_TAG="main"
-          else
-            TAG="develop-${SHORT_SHA}"
-            FLOATING_TAG="develop"
-          fi
+          TAG="develop-${SHORT_SHA}"
+          FLOATING_TAG="develop"
           echo "image_tag=${TAG}" >> $GITHUB_OUTPUT
           echo "floating_tag=${FLOATING_TAG}" >> $GITHUB_OUTPUT
           echo "📦 Image tag: ${TAG}"
@@ -77,14 +65,12 @@ jobs:
         run: |
           echo "🔨 構建前端應用..."
           
-          # 根據環境設置不同的 API 端點
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            API_BASE_PATH="https://api.passon.tw/"
-          else
-            API_BASE_PATH="https://token-admin-api.passon.tw/"
-          fi
+          # 使用 Nginx 反向代理到 k8s 內部服務
+          # 前後端在同一命名空間，通過 /api/ 路徑代理到後端服務
+          API_BASE_PATH="/api/"
           
           echo "📍 API Base Path: ${API_BASE_PATH}"
+          echo "ℹ️  使用 Kubernetes 內部服務通信"
           
           # 進入前端目錄並構建
           cd cmd/token-admin-web
@@ -129,8 +115,8 @@ jobs:
     needs: build
     if: success()
     env:
-      NAMESPACE: ${{ needs.build.outputs.environment == 'production' && 'passontw-services-production' || 'passontw-services-staging' }}
-      OVERLAY_PATH: ${{ needs.build.outputs.environment == 'production' && 'production' || 'staging' }}
+      NAMESPACE: passontw-services-staging
+      OVERLAY_PATH: staging
     
     steps:
       - name: Checkout code
@@ -234,7 +220,7 @@ jobs:
           echo ""
           echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
           echo "📍 Namespace: ${{ env.NAMESPACE }}"
-          echo "🌍 Environment: ${{ needs.build.outputs.environment }}"
+          echo "🌍 Environment: Staging"
           echo ""
           echo "Pod 狀態："
           kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.SERVICE_NAME }}
@@ -242,10 +228,6 @@ jobs:
           echo "Service 狀態："
           kubectl get svc -n ${{ env.NAMESPACE }} ${{ env.SERVICE_NAME }}
           echo ""
-          if [[ "${{ needs.build.outputs.environment }}" == "production" ]]; then
-            echo "🌐 訪問地址：https://admin.passon.tw"
-          else
-            echo "🌐 訪問地址：https://token-admin-web.passon.tw"
-          fi
+          echo "🌐 訪問地址：https://token-admin-web.passon.tw"
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

@@ -1,22 +1,21 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: token-services-ingress-staging
+  name: token-admin-web-ingress-staging
   namespace: passontw-services-staging
   annotations:
     # Traefik Ingress Controller
     kubernetes.io/ingress.class: "traefik"
     
-    # Cert-manager annotations - 自動申請和更新 Let's Encrypt 證書
-    # Staging 環境使用 staging 伺服器，避免觸及生產環境速率限制
-    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    # Cert-manager - 使用 Let's Encrypt Production 證書
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     
-    # Traefik 配置 - 強制 HTTPS 重定向
+    # Traefik - 強制 HTTPS 重定向
     traefik.ingress.kubernetes.io/redirect-entry-point: https
     traefik.ingress.kubernetes.io/redirect-permanent: "true"
     traefik.ingress.kubernetes.io/frontend-entry-points: http,https
     
-    # 啟用 HSTS（HTTP Strict Transport Security）
+    # 安全標頭 - HSTS, XSS Protection, etc.
     traefik.ingress.kubernetes.io/custom-response-headers: |
       Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
       X-Frame-Options: SAMEORIGIN
@@ -27,7 +26,7 @@ spec:
   tls:
   - hosts:
     - token-admin-web.passon.tw
-    secretName: token-admin-web-tls  # cert-manager 會自動創建此 Secret
+    secretName: token-admin-web-tls
   
   # 路由規則
   rules:

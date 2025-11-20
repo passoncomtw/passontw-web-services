@@ -1,224 +1,149 @@
-# Kubernetes 部署指南 - Token Admin Web
+# Kubernetes 部署配置（Web 服務）
 
-> Token Admin Web 前端應用的 Kubernetes 部署配置和操作指南
-
-## 📋 目錄
-
-- [目錄結構](#目錄結構)
-- [快速開始](#快速開始)
-- [環境配置](#環境配置)
-- [部署流程](#部署流程)
-- [日常操作](#日常操作)
-- [故障排除](#故障排除)
+> token-admin-web 的 Kubernetes 部署配置
 
 ---
 
-## 目錄結構
+## 📌 架構說明
+
+### 各自管理原則
+
+本專案**獨立管理**自己的 Ingress 和 SSL 證書：
+
+```
+✅ Deployment（部署配置）
+✅ Service（服務配置）
+✅ Ingress（HTTPS/SSL 配置）
+```
+
+**設計原則：**
+1. ✅ 微服務獨立性 - 各專案管理自己的路由和證書
+2. ✅ 避免跨專案依賴 - 前端和後端配置分離
+3. ✅ 部署獨立 - 各自部署，互不影響
+4. ✅ 職責分明 - 前端專案只包含前端相關配置
+
+**與 Backend 專案關係：**
+- Backend 專案管理：token-admin-api.passon.tw、token-app-api.passon.tw
+- Web 專案管理：token-admin-web.passon.tw（本專案）
+- 兩者使用不同的 Ingress 名稱，避免衝突
+
+---
+
+## 📁 目錄結構
 
 ```
 k8s/
-├── README.md                                  # 本文檔
-├── base/                                      # 基礎配置
-│   ├── kustomization.yaml                     # Kustomize 基礎配置
-│   ├── token-admin-web-deployment.yaml        # Deployment 定義
-│   └── token-admin-web-service.yaml           # Service 定義
-├── overlays/                                  # 環境特定配置
-│   ├── staging/                               # Staging 環境
-│   │   └── kustomization.yaml                 # Staging 配置覆蓋
-│   └── production/                            # Production 環境
-│       └── kustomization.yaml                 # Production 配置覆蓋
-└── ingress/                                   # Ingress 配置
-    ├── ingress-staging-https.yaml             # Staging HTTPS 入口
-    └── ingress-production-https.yaml          # Production HTTPS 入口
+├── README.md           # 本文檔
+├── base/              # 基礎配置
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── kustomization.yaml
+└── overlays/          # 環境特定配置
+    └── staging/
+        ├── kustomization.yaml
+        └── patches/   # 環境特定的配置補丁
 ```
 
 ---
 
-## 快速開始
+## 🚀 部署流程
 
-### 環境準備
-
-**前置條件：**
-- ✅ kubectl 已安裝並配置
-- ✅ kustomize 已安裝
-- ✅ 可連接到 Kubernetes 集群
-- ✅ GitHub Container Registry 認證已設置
-
-**驗證環境：**
-```bash
-kubectl cluster-info
-kubectl get nodes
-kustomize version
-```
-
-### 首次部署
-
-#### 1. 創建必要的 Secrets
+### 方式 1：使用 GitHub Actions（推薦）
 
 ```bash
-# 創建 GHCR Pull Secret（用於拉取私有鏡像）
-kubectl create secret docker-registry ghcr-pull-secret \
-  --docker-server=ghcr.io \
-  --docker-username=YOUR_GITHUB_USERNAME \
-  --docker-password=YOUR_GITHUB_TOKEN \
-  -n passontw-services-staging
-```
-
-#### 2. 自動部署（推薦）
-
-```bash
-# 推送代碼到 develop 分支會自動部署到 staging
+# 推送到 develop 分支自動部署到 staging
 git push origin develop
-
-# 推送代碼到 main 分支會自動部署到 production
-git push origin main
 ```
 
-#### 3. 手動部署
+### 方式 2：使用 kubectl + kustomize
 
 ```bash
-# 部署到 Staging
-cd k8s/overlays/staging
-kustomize edit set image \
-  ghcr.io/passontw/token-admin-web=ghcr.io/passontw/token-admin-web:develop-abc1234
-kubectl apply -k .
+# 部署到 staging
+kubectl apply -k k8s/overlays/staging/
 
-# 部署到 Production
-cd k8s/overlays/production
-kustomize edit set image \
-  ghcr.io/passontw/token-admin-web=ghcr.io/passontw/token-admin-web:main-abc1234
-kubectl apply -k .
-```
-
-#### 4. 驗證部署
-
-```bash
-# 查看 Pods 狀態
+# 查看狀態
 kubectl get pods -n passontw-services-staging -l app=token-admin-web
-
-# 查看日誌
-kubectl logs -f deployment/token-admin-web -n passontw-services-staging
-
-# 查看服務
-kubectl get svc -n passontw-services-staging token-admin-web
-
-# 查看 Ingress
-kubectl get ingress -n passontw-services-staging
 ```
 
 ---
 
-## 環境配置
+## 🔐 SSL 證書管理
 
-### Staging 環境
-
-| 項目 | 配置 |
-|------|------|
-| **命名空間** | `passontw-services-staging` |
-| **域名** | `https://token-admin-web.passon.tw` |
-| **副本數** | 2 |
-| **資源請求** | CPU: 100m, Memory: 128Mi |
-| **資源限制** | CPU: 500m, Memory: 512Mi |
-| **API 端點** | `https://token-admin-api.passon.tw/` |
-
-### Production 環境
-
-| 項目 | 配置 |
-|------|------|
-| **命名空間** | `passontw-services-production` |
-| **域名** | `https://admin.passon.tw` |
-| **副本數** | 3 |
-| **資源請求** | CPU: 200m, Memory: 256Mi |
-| **資源限制** | CPU: 1000m, Memory: 1Gi |
-| **API 端點** | `https://api.passon.tw/` |
-
----
-
-## 部署流程
-
-### CI/CD 自動部署
-
-GitHub Actions 會在以下情況觸發自動部署：
-
-1. **Staging 部署**
-   - 觸發條件：推送到 `develop` 分支
-   - 路徑變更：
-     - `.github/workflows/cicd-admin-web.yaml`
-     - `cmd/token-admin-web/**`
-     - `deploy/token-admin-web/**`
-     - `k8s/**`
-
-2. **Production 部署**
-   - 觸發條件：推送到 `main` 分支
-   - 相同的路徑監控規則
-
-**部署步驟：**
-1. ✅ 構建 Docker 鏡像
-2. ✅ 推送到 GHCR
-3. ✅ 更新 Kubernetes 配置
-4. ✅ 滾動更新部署
-5. ✅ 健康檢查驗證
-6. ❌ 失敗時自動回滾
-
-### 手動部署
+### 查看證書狀態
 
 ```bash
-# 1. 構建並推送鏡像
-cd /path/to/project
-docker build -f deploy/token-admin-web/Dockerfile \
-  --build-arg REACT_APP_BASE_PATH=https://token-admin-api.passon.tw/ \
-  -t ghcr.io/passontw/token-admin-web:develop-$(git rev-parse --short HEAD) .
+# 查看 web 服務的證書
+kubectl get certificate token-admin-web-tls -n passontw-services-staging
 
-docker push ghcr.io/passontw/token-admin-web:develop-$(git rev-parse --short HEAD)
+# 查看證書詳情
+kubectl describe certificate token-admin-web-tls -n passontw-services-staging
+```
 
-# 2. 更新 Kubernetes
-cd k8s/overlays/staging
-kustomize edit set image \
-  ghcr.io/passontw/token-admin-web=ghcr.io/passontw/token-admin-web:develop-$(git rev-parse --short HEAD)
+### 更新 SSL 配置
 
-kubectl apply -k .
+**本專案自行管理 SSL 證書：**
 
-# 3. 監控部署
-kubectl rollout status deployment/token-admin-web -n passontw-services-staging
+```bash
+# 編輯 Ingress 配置
+vim k8s/overlays/staging/ingress.yaml
+
+# 應用變更
+kubectl apply -f k8s/overlays/staging/ingress.yaml
+
+# 查看證書申請進度
+kubectl get certificate token-admin-web-tls -n passontw-services-staging -w
+```
+
+### 驗證 HTTPS
+
+```bash
+# 測試連接
+curl -I https://token-admin-web.passon.tw
+
+# 查看證書
+echo | openssl s_client -servername token-admin-web.passon.tw \
+  -connect token-admin-web.passon.tw:443 2>/dev/null | \
+  openssl x509 -noout -issuer -dates
 ```
 
 ---
 
-## 日常操作
+## 📋 常用命令
 
-### 查看資源狀態
+### 查看資源
 
 ```bash
-# 查看所有資源
+# 查看 Web 服務的所有資源
 kubectl get all -n passontw-services-staging -l app=token-admin-web
 
-# 查看 Pods 詳情
-kubectl describe pod <pod-name> -n passontw-services-staging
+# 查看 Deployment
+kubectl get deployment token-admin-web -n passontw-services-staging
 
-# 查看日誌（實時）
+# 查看 Service
+kubectl get service token-admin-web -n passontw-services-staging
+
+# 查看 Pods
+kubectl get pods -n passontw-services-staging -l app=token-admin-web
+```
+
+### 查看日誌
+
+```bash
+# 實時日誌
 kubectl logs -f deployment/token-admin-web -n passontw-services-staging
 
-# 查看最近 100 行日誌
+# 最近 100 行
 kubectl logs --tail=100 deployment/token-admin-web -n passontw-services-staging
 ```
 
-### 擴展副本
+### 更新服務
 
 ```bash
-# 擴展到 5 個副本
-kubectl scale deployment/token-admin-web --replicas=5 -n passontw-services-staging
+# 重啟 Pods
+kubectl rollout restart deployment/token-admin-web -n passontw-services-staging
 
-# 查看擴展狀態
-kubectl get pods -n passontw-services-staging -l app=token-admin-web -w
-```
-
-### 更新鏡像
-
-```bash
-# 更新到新版本
-kubectl set image deployment/token-admin-web \
-  token-admin-web=ghcr.io/passontw/token-admin-web:develop-abc1234 \
-  -n passontw-services-staging
+# 擴展副本
+kubectl scale deployment/token-admin-web --replicas=3 -n passontw-services-staging
 
 # 查看更新狀態
 kubectl rollout status deployment/token-admin-web -n passontw-services-staging
@@ -232,218 +157,101 @@ kubectl rollout history deployment/token-admin-web -n passontw-services-staging
 
 # 回滾到上一個版本
 kubectl rollout undo deployment/token-admin-web -n passontw-services-staging
-
-# 回滾到特定版本
-kubectl rollout undo deployment/token-admin-web \
-  -n passontw-services-staging \
-  --to-revision=2
-```
-
-### 重啟 Pods
-
-```bash
-# 滾動重啟（不會造成停機）
-kubectl rollout restart deployment/token-admin-web -n passontw-services-staging
-```
-
-### 進入 Pod 調試
-
-```bash
-# 進入 Pod shell
-kubectl exec -it <pod-name> -n passontw-services-staging -- sh
-
-# 查看 Nginx 配置
-kubectl exec <pod-name> -n passontw-services-staging -- cat /etc/nginx/conf.d/default.conf
-
-# 測試健康檢查
-kubectl exec <pod-name> -n passontw-services-staging -- wget -O- http://localhost/health
 ```
 
 ---
 
-## 故障排除
+## 🔍 故障排除
 
 ### Pod 無法啟動
 
-**症狀：** `CrashLoopBackOff` 或 `Error`
-
 ```bash
-# 1. 查看 Pod 狀態
+# 查看 Pod 狀態
 kubectl describe pod <pod-name> -n passontw-services-staging
 
-# 2. 查看日誌
+# 查看日誌
 kubectl logs <pod-name> -n passontw-services-staging
-kubectl logs <pod-name> --previous -n passontw-services-staging
 
-# 3. 查看事件
+# 查看事件
 kubectl get events -n passontw-services-staging --sort-by='.lastTimestamp'
-```
-
-**常見原因：**
-- Nginx 配置錯誤
-- 靜態檔案缺失
-- 健康檢查端點失敗
-- 資源不足
-
-### 鏡像拉取失敗
-
-**症狀：** `ImagePullBackOff` 或 `ErrImagePull`
-
-```bash
-# 檢查 Secret
-kubectl get secret ghcr-pull-secret -n passontw-services-staging
-
-# 重新創建 Secret
-kubectl delete secret ghcr-pull-secret -n passontw-services-staging
-kubectl create secret docker-registry ghcr-pull-secret \
-  --docker-server=ghcr.io \
-  --docker-username=YOUR_USERNAME \
-  --docker-password=YOUR_TOKEN \
-  -n passontw-services-staging
-
-# 重啟部署
-kubectl rollout restart deployment/token-admin-web -n passontw-services-staging
 ```
 
 ### 服務無法訪問
 
 ```bash
 # 檢查 Service
-kubectl get svc -n passontw-services-staging token-admin-web
+kubectl get svc token-admin-web -n passontw-services-staging
 kubectl describe svc token-admin-web -n passontw-services-staging
 
 # 檢查 Endpoints
-kubectl get endpoints -n passontw-services-staging token-admin-web
-
-# 檢查 Ingress
-kubectl describe ingress -n passontw-services-staging
+kubectl get endpoints token-admin-web -n passontw-services-staging
 
 # 測試內部連接
 kubectl run -it --rm curl-test \
   --image=curlimages/curl \
   --restart=Never \
   -n passontw-services-staging \
-  -- curl -v http://token-admin-web/health
+  -- curl -v http://token-admin-web:80
 ```
 
-### HTTPS 證書問題
+### SSL 證書問題
 
-```bash
-# 檢查證書 Secret
-kubectl get secret token-admin-web-tls -n passontw-services-staging
-kubectl describe secret token-admin-web-tls -n passontw-services-staging
+**所有 SSL 相關問題請參考 backend 專案的文檔：**
 
-# 檢查 cert-manager
-kubectl get certificate -n passontw-services-staging
-kubectl describe certificate token-admin-web-tls -n passontw-services-staging
-
-# 強制更新證書
-kubectl delete secret token-admin-web-tls -n passontw-services-staging
-kubectl delete certificate token-admin-web-tls -n passontw-services-staging
+```
+passontw-backend-services/k8s/README.md
 ```
 
 ---
 
-## 監控與維護
-
-### 健康檢查
-
-```bash
-# 檢查 Pod 健康狀態
-kubectl get pods -n passontw-services-staging -l app=token-admin-web
-
-# 測試健康檢查端點
-kubectl port-forward deployment/token-admin-web 8080:80 -n passontw-services-staging
-curl http://localhost:8080/health
-```
-
-### 資源使用
-
-```bash
-# 查看 Pod 資源使用
-kubectl top pods -n passontw-services-staging -l app=token-admin-web
-
-# 查看節點資源
-kubectl top nodes
-
-# 查看詳細資源配置
-kubectl describe deployment token-admin-web -n passontw-services-staging
-```
-
----
-
-## 最佳實踐
-
-### 1. 部署策略
-- ✅ 使用滾動更新避免停機
-- ✅ 先在 Staging 測試再部署到 Production
-- ✅ 保持至少 2 個副本以提供高可用性
-
-### 2. 資源管理
-- ✅ 設定合理的資源請求和限制
-- ✅ 根據實際負載調整副本數
-- ✅ 監控資源使用趨勢
-
-### 3. 安全性
-- ✅ 使用 HTTPS 加密傳輸
-- ✅ 定期更新基礎鏡像
-- ✅ 不要將敏感資訊硬編碼在配置中
-- ✅ 使用 Secrets 管理認證資訊
-
-### 4. 監控與日誌
-- ✅ 定期檢查 Pod 狀態
-- ✅ 設定告警規則
-- ✅ 保留部署歷史以便回滾
-
----
-
-## 快速命令參考
-
-```bash
-# === 查看資源 ===
-kubectl get all -n passontw-services-staging -l app=token-admin-web
-kubectl get pods -n passontw-services-staging -l app=token-admin-web -w
-kubectl get svc -n passontw-services-staging token-admin-web
-kubectl get ingress -n passontw-services-staging
-
-# === 查看日誌 ===
-kubectl logs -f deployment/token-admin-web -n passontw-services-staging
-kubectl logs --tail=100 deployment/token-admin-web -n passontw-services-staging
-
-# === 部署操作 ===
-kubectl apply -k k8s/overlays/staging
-kubectl rollout restart deployment/token-admin-web -n passontw-services-staging
-kubectl rollout status deployment/token-admin-web -n passontw-services-staging
-kubectl rollout undo deployment/token-admin-web -n passontw-services-staging
-
-# === 擴展與縮容 ===
-kubectl scale deployment/token-admin-web --replicas=3 -n passontw-services-staging
-
-# === 調試 ===
-kubectl exec -it <pod-name> -n passontw-services-staging -- sh
-kubectl port-forward deployment/token-admin-web 8080:80 -n passontw-services-staging
-```
-
----
-
-## 相關資源
+## 🔗 相關資源
 
 ### 文檔
-- [GitHub Actions CI/CD](../../.github/workflows/cicd-admin-web.yaml) - 自動化部署配置
-- [Dockerfile](../../deploy/token-admin-web/Dockerfile) - 鏡像構建配置
-- [Nginx 配置](../../deploy/token-admin-web/nginx.conf) - Web 服務器配置
+- [Backend K8s README](../../passontw-backend-services/k8s/README.md) - 包含完整的 SSL 證書管理說明
+- [GitHub Actions CI/CD](../.github/workflows/README.md) - 自動化部署說明
+
+### 配置檔案
+- [Deployment](./base/deployment.yaml) - 部署定義
+- [Service](./base/service.yaml) - 服務定義
+- [統一 Ingress](../../passontw-backend-services/k8s/overlays/staging/ingress.yaml) - SSL 和路由管理
 
 ### 外部資源
 - [Kubernetes 官方文檔](https://kubernetes.io/docs/)
 - [Kustomize 文檔](https://kustomize.io/)
-- [kubectl 速查表](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
-- [Nginx 配置指南](https://nginx.org/en/docs/)
+- [cert-manager 文檔](https://cert-manager.io/docs/)
+
+---
+
+## ⚙️ 配置說明
+
+### Deployment
+
+- **副本數**：Staging 環境預設 2 個副本
+- **資源限制**：根據實際使用調整
+- **健康檢查**：配置 liveness 和 readiness probes
+- **環境變數**：透過 ConfigMap 和 Secret 注入
+
+### Service
+
+- **類型**：ClusterIP（內部服務）
+- **端口**：80（HTTP）
+- **選擇器**：`app=token-admin-web`
+
+### Ingress（在 backend 專案管理）
+
+- **域名**：token-admin-web.passon.tw
+- **TLS**：Let's Encrypt Production 證書
+- **路由**：所有請求轉發到 Service
 
 ---
 
 **最後更新：** 2025-11-20  
 **維護者：** DevOps Team
 
-**快速開始：** 
-1. 創建 GHCR Pull Secret → 2. 推送代碼到 develop → 3. 自動部署完成！
+**快速開始：**
+1. 推送代碼到 develop 分支
+2. GitHub Actions 自動構建和部署
+3. 檢查 Pod 狀態：`kubectl get pods -n passontw-services-staging -l app=token-admin-web`
 
+**SSL 管理：**
+所有 SSL 配置請參考 `passontw-backend-services/k8s/README.md`
