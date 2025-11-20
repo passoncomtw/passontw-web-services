@@ -8,6 +8,6 @@ resources:
 
 # 鏡像配置（將被 overlay 覆蓋）
 images:
-  - name: ghcr.io/passontw/token-admin-web
+  - name: ghcr.io/passoncomtw/token-admin-web
     newTag: placeholder
 
