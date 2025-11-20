@@ -4,7 +4,7 @@
   "description": "wallet admin console",
   "private": true,
   "engines": {
-    "node": "18.x",
+    "node": ">=22.0.0",
     "npm": ">=8.0.0",
     "yarn": ">=1.22.0"
   },
@@ -17,8 +17,8 @@
     "postJSMajorVersion": "npm version major",
     "postJSMinorVersion": "npm version minor",
     "postJSPatchVersion": "npm version patch",
-    "start": "NODE_OPTIONS=--openssl-legacy-provider ./node_modules/react-app-rewired/bin/index.js start",
-    "build": "NODE_OPTIONS=--openssl-legacy-provider ./node_modules/react-app-rewired/bin/index.js build",
+    "start": "./node_modules/react-app-rewired/bin/index.js start",
+    "build": "./node_modules/react-app-rewired/bin/index.js build",
     "test": "npx ./node_modules/react-app-rewired/bin/index.js test --env=jsdom",
     "eject": "npx ./node_modules/react-app-rewired/bin/index.js eject"
   },

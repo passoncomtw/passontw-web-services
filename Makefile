@@ -7,7 +7,7 @@ BUILD_OUTPUT := $(SERVICE_PATH)/build
 DOCKER_IMAGE := ghcr.io/passoncomtw/$(SERVICE_NAME)
 DOCKER_TAG ?= latest
 REACT_APP_BASE_PATH ?= https://token-admin-api.passon.tw/
-REQUIRED_NODE_VERSION := 18
+REQUIRED_NODE_VERSION := 22
 
 help: ## 顯示幫助信息
 	@echo "可用的 make 命令："
