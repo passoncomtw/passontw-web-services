@@ -4,7 +4,7 @@ kind: Kustomization
 # 引用基礎配置
 resources:
   - ../../base
-  - ../../ingress/ingress-staging-https.yaml
+  - ingress.yaml
 
 # Staging 命名空間
 namespace: passontw-services-staging
