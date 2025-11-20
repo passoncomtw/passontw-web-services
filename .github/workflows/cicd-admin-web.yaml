@@ -72,6 +72,8 @@ jobs:
           cache-dependency-path: cmd/token-admin-web/yarn.lock
 
       - name: Build Frontend Application
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
         run: |
           echo "🔨 構建前端應用..."
           

@@ -17,8 +17,8 @@
     "postJSMajorVersion": "npm version major",
     "postJSMinorVersion": "npm version minor",
     "postJSPatchVersion": "npm version patch",
-    "start": "./node_modules/react-app-rewired/bin/index.js start",
-    "build": "./node_modules/react-app-rewired/bin/index.js build",
+    "start": "NODE_OPTIONS=--openssl-legacy-provider ./node_modules/react-app-rewired/bin/index.js start",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider ./node_modules/react-app-rewired/bin/index.js build",
     "test": "npx ./node_modules/react-app-rewired/bin/index.js test --env=jsdom",
     "eject": "npx ./node_modules/react-app-rewired/bin/index.js eject"
   },
