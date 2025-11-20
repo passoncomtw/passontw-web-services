@@ -2,7 +2,7 @@ name: Build Token Admin Web
 
 on:
   push:
-    branches: [develop, main]
+    branches: [develop]
     paths:
       - '.github/workflows/cicd-admin-web.yaml'
       - 'cmd/token-admin-web/**'
