@@ -1,4 +1,4 @@
-.PHONY: help install build build-docker clean
+.PHONY: help install build build-docker clean check-node
 
 # 變數定義
 SERVICE_NAME := token-admin-web
@@ -7,17 +7,33 @@ BUILD_OUTPUT := $(SERVICE_PATH)/build
 DOCKER_IMAGE := ghcr.io/passoncomtw/$(SERVICE_NAME)
 DOCKER_TAG ?= latest
 REACT_APP_BASE_PATH ?= https://token-admin-api.passon.tw/
+REQUIRED_NODE_VERSION := 18
 
 help: ## 顯示幫助信息
 	@echo "可用的 make 命令："
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install: ## 安裝依賴
+check-node: ## 檢查 Node.js 版本
+	@echo "🔍 檢查 Node.js 版本..."
+	@NODE_VERSION=$$(node -v | cut -d'v' -f2 | cut -d'.' -f1); \
+	if [ "$$NODE_VERSION" != "$(REQUIRED_NODE_VERSION)" ]; then \
+		echo "❌ 錯誤: 需要 Node.js $(REQUIRED_NODE_VERSION).x，當前版本是 $$(node -v)"; \
+		echo ""; \
+		echo "請使用以下命令切換版本:"; \
+		echo "  nvm use $(REQUIRED_NODE_VERSION)"; \
+		echo ""; \
+		echo "或安裝 Node.js $(REQUIRED_NODE_VERSION):"; \
+		echo "  nvm install $(REQUIRED_NODE_VERSION)"; \
+		exit 1; \
+	fi
+	@echo "✅ Node.js 版本正確: $$(node -v)"
+
+install: check-node ## 安裝依賴
 	@echo "📦 安裝 $(SERVICE_NAME) 依賴..."
 	cd $(SERVICE_PATH) && yarn install --frozen-lockfile
 
-build: ## 構建前端應用
+build: check-node ## 構建前端應用
 	@echo "🔨 構建 $(SERVICE_NAME)..."
 	@echo "📍 API Base Path: $(REACT_APP_BASE_PATH)"
 	cd $(SERVICE_PATH) && \

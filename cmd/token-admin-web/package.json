@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "wallet admin console",
   "private": true,
+  "engines": {
+    "node": "18.x",
+    "npm": ">=8.0.0",
+    "yarn": ">=1.22.0"
+  },
   "scripts": {
     "releaseas": "npx standard-version --release-as",
     "release:show": "npx standard-version --dry-run",
