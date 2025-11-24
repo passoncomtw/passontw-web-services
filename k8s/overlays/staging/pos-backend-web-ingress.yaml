@@ -4,25 +4,25 @@ metadata:
   name: pos-backend-web-ingress-staging
   namespace: passontw-services-staging
   annotations:
+    # Traefik Ingress Controller
+    kubernetes.io/ingress.class: "traefik"
+    
     # Cert-Manager 自動管理 SSL 證書
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     
-    # HTTPS 重定向
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Traefik - 強制 HTTPS 重定向
+    traefik.ingress.kubernetes.io/redirect-entry-point: https
+    traefik.ingress.kubernetes.io/redirect-permanent: "true"
+    traefik.ingress.kubernetes.io/frontend-entry-points: http,https
     
-    # 安全標頭
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      more_set_headers "X-Frame-Options: SAMEORIGIN";
-      more_set_headers "X-Content-Type-Options: nosniff";
-      more_set_headers "X-XSS-Protection: 1; mode=block";
-    
-    # 代理配置
-    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    # 安全標頭 - HSTS, XSS Protection, etc.
+    traefik.ingress.kubernetes.io/custom-response-headers: |
+      Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+      X-Frame-Options: SAMEORIGIN
+      X-Content-Type-Options: nosniff
+      X-XSS-Protection: 1; mode=block
     
 spec:
-  ingressClassName: nginx
   tls:
   - hosts:
     - pos-backend-web.passon.tw
