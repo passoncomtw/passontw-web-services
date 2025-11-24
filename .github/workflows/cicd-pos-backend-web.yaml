@@ -32,11 +32,8 @@ jobs:
       - name: Set image tag
         id: set-tag
         run: |
-          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          TAG="develop-${SHORT_SHA}"
-          FLOATING_TAG="develop"
+          TAG="develop"
           echo "image_tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "floating_tag=${FLOATING_TAG}" >> $GITHUB_OUTPUT
           echo "📦 Image tag: ${TAG}"
 
       - name: Log in to GitHub Container Registry
@@ -99,7 +96,6 @@ jobs:
         run: |
           IMAGE_FULL="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           TAG="${{ steps.set-tag.outputs.image_tag }}"
-          FLOATING_TAG="${{ steps.set-tag.outputs.floating_tag }}"
           
           echo "🐳 構建 Docker 鏡像: $IMAGE_FULL:$TAG"
           
@@ -107,12 +103,10 @@ jobs:
           docker build \
             --file ./deploy/pos-backend-web/Dockerfile \
             --tag "$IMAGE_FULL:$TAG" \
-            --tag "$IMAGE_FULL:$FLOATING_TAG" \
             .
           
           echo "📤 推送鏡像..."
           docker push "$IMAGE_FULL:$TAG"
-          docker push "$IMAGE_FULL:$FLOATING_TAG"
           
           # 顯示鏡像大小
           echo "📊 鏡像大小："
