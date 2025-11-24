@@ -74,6 +74,20 @@ spec:
               - ALL
             add:
               - NET_BIND_SERVICE
+        
+        # Nginx 需要的可寫目錄
+        volumeMounts:
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+      
+      # Volumes
+      volumes:
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
       
       # Pod 安全策略
       securityContext:

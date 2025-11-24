@@ -13,9 +13,9 @@ namespace: passontw-services-staging
 # 鏡像標籤（由 CI/CD 動態設置）
 images:
   - name: ghcr.io/passoncomtw/token-admin-web
-    newTag: develop-PLACEHOLDER  # 將被 CI/CD 替換
+    newTag: develop  # CI/CD 會更新此標籤
   - name: ghcr.io/passoncomtw/pos-backend-web
-    newTag: develop-PLACEHOLDER  # 將被 CI/CD 替換
+    newTag: develop  # CI/CD 會更新此標籤
 
 # Staging 環境的資源配置
 patches:
