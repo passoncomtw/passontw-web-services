@@ -5,9 +5,13 @@ kind: Kustomization
 resources:
   - token-admin-web-deployment.yaml
   - token-admin-web-service.yaml
+  - pos-backend-web-deployment.yaml
+  - pos-backend-web-service.yaml
 
 # 鏡像配置（將被 overlay 覆蓋）
 images:
   - name: ghcr.io/passoncomtw/token-admin-web
+    newTag: placeholder
+  - name: ghcr.io/passoncomtw/pos-backend-web
     newTag: placeholder
 

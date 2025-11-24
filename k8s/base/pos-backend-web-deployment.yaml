@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pos-backend-web
+  labels:
+    app: pos-backend-web
+    version: v1
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: pos-backend-web
+  template:
+    metadata:
+      labels:
+        app: pos-backend-web
+        version: v1
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      
+      containers:
+      - name: pos-backend-web
+        # 鏡像標籤由 Kustomize 在部署時動態設置
+        image: ghcr.io/passoncomtw/pos-backend-web:placeholder
+        imagePullPolicy: Always
+        
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        
+        # 健康檢查
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # 資源限制
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        
+        # 安全上下文
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 101  # nginx user
+          readOnlyRootFilesystem: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - NET_BIND_SERVICE
+      
+      # Pod 安全策略
+      securityContext:
+        fsGroup: 101
+      
+      # 重啟策略
+      restartPolicy: Always
+

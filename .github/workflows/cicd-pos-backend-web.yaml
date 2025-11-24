@@ -1,0 +1,241 @@
+name: Build POS Backend Web
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - '.github/workflows/cicd-pos-backend-web.yaml'
+      - 'cmd/pos-backend-web/**'
+      - 'deploy/pos-backend-web/**'
+      - 'k8s/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/pos-backend-web
+  SERVICE_NAME: pos-backend-web
+  NAMESPACE: passontw-services-staging
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.set-tag.outputs.image_tag }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: set-tag
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          TAG="develop-${SHORT_SHA}"
+          FLOATING_TAG="develop"
+          echo "image_tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "floating_tag=${FLOATING_TAG}" >> $GITHUB_OUTPUT
+          echo "📦 Image tag: ${TAG}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+          cache-dependency-path: cmd/pos-backend-web/yarn.lock
+
+      - name: Optimize System Limits for Build
+        run: |
+          echo "=== Current Limits ==="
+          ulimit -n
+          echo "=== Setting Higher File Descriptor Limit ==="
+          ulimit -n 65536
+          echo "New limit: $(ulimit -n)"
+
+      - name: Build Frontend Application
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096 --max-semi-space-size=1024"
+          # API Base URL - 使用 Nginx 反向代理到 Kubernetes 內部服務
+          VITE_API_BASE_URL: "/api"
+        run: |
+          echo "🔨 構建前端應用（Vite）..."
+          
+          # API 配置說明
+          echo "📍 API Base URL: ${VITE_API_BASE_URL}"
+          echo "ℹ️  使用 Nginx 反向代理到 Kubernetes 內部服務（token-app-api）"
+          
+          cd cmd/pos-backend-web
+          
+          echo "📦 安裝依賴..."
+          yarn install --frozen-lockfile --ignore-engines --network-timeout 300000
+          
+          echo "🏗️  執行構建..."
+          yarn build:production
+          
+          # 驗證構建產物
+          if [ ! -d "dist" ]; then
+            echo "❌ 構建失敗：找不到 dist 目錄"
+            exit 1
+          fi
+          
+          echo "📊 構建產物大小："
+          du -sh dist/
+          echo ""
+          echo "📂 構建產物內容："
+          ls -la dist/
+          
+          echo "✅ 前端構建完成"
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_FULL="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          TAG="${{ steps.set-tag.outputs.image_tag }}"
+          FLOATING_TAG="${{ steps.set-tag.outputs.floating_tag }}"
+          
+          echo "🐳 構建 Docker 鏡像: $IMAGE_FULL:$TAG"
+          
+          # 在項目根目錄構建（Dockerfile 中的路徑是相對於根目錄的）
+          docker build \
+            --file ./deploy/pos-backend-web/Dockerfile \
+            --tag "$IMAGE_FULL:$TAG" \
+            --tag "$IMAGE_FULL:$FLOATING_TAG" \
+            .
+          
+          echo "📤 推送鏡像..."
+          docker push "$IMAGE_FULL:$TAG"
+          docker push "$IMAGE_FULL:$FLOATING_TAG"
+          
+          # 顯示鏡像大小
+          echo "📊 鏡像大小："
+          docker images "$IMAGE_FULL:$TAG" --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+          
+          echo "✅ Docker 鏡像構建並推送完成"
+
+  deploy:
+    runs-on: mac-mini-build
+    needs: build
+    if: success()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Kubernetes
+        id: deploy
+        run: |
+          IMAGE_TAG="${{ needs.build.outputs.image_tag }}"
+          
+          echo "🚀 開始部署 ${{ env.SERVICE_NAME }}..."
+          echo "📦 Image tag: ${IMAGE_TAG}"
+          echo "📍 Namespace: ${{ env.NAMESPACE }}"
+          echo "🌍 Environment: Staging"
+          
+          # 進入 kustomize overlay 目錄
+          cd k8s/overlays/staging
+          
+          # 更新 image tag
+          kustomize edit set image \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+          
+          # 應用配置
+          echo "📦 應用 Kubernetes 配置..."
+          kubectl apply -k . || {
+            echo "⚠️  部署失敗，可能是 selector 不可變問題"
+            echo "🔄 刪除並重新創建 deployment..."
+            kubectl delete deployment ${{ env.SERVICE_NAME }} -n ${{ env.NAMESPACE }} --ignore-not-found=true
+            kubectl apply -k .
+          }
+          
+          echo "✅ 配置已應用"
+
+      - name: Wait for deployment
+        id: wait
+        run: |
+          echo "⏳ 等待部署完成（超時 5 分鐘）..."
+          
+          if kubectl rollout status deployment/${{ env.SERVICE_NAME }} \
+            -n ${{ env.NAMESPACE }} \
+            --timeout=5m; then
+            echo "✅ 部署成功"
+            echo "deployment_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ 部署超時或失敗"
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Verify deployment
+        if: steps.wait.outputs.deployment_status == 'success'
+        run: |
+          echo "🔍 驗證部署狀態..."
+          
+          # 獲取 pod 狀態
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.SERVICE_NAME }}
+          
+          # 檢查 pod 是否健康
+          READY_PODS=$(kubectl get pods -n ${{ env.NAMESPACE }} \
+            -l app=${{ env.SERVICE_NAME }} \
+            --field-selector=status.phase=Running \
+            -o jsonpath='{.items[*].metadata.name}' | wc -w)
+          
+          echo "✅ 健康的 Pods 數量: ${READY_PODS}"
+          
+          if [ "$READY_PODS" -eq 0 ]; then
+            echo "❌ 沒有健康的 Pod"
+            exit 1
+          fi
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ 部署失敗，執行自動回滾..."
+          
+          # 回滾到上一個版本
+          kubectl rollout undo deployment/${{ env.SERVICE_NAME }} \
+            -n ${{ env.NAMESPACE }}
+          
+          echo "⏳ 等待回滾完成..."
+          kubectl rollout status deployment/${{ env.SERVICE_NAME }} \
+            -n ${{ env.NAMESPACE }} \
+            --timeout=3m
+          
+          echo "✅ 已回滾到上一個版本"
+          
+          # 顯示當前狀態
+          echo ""
+          echo "📊 當前部署狀態："
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.SERVICE_NAME }}
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          IMAGE_TAG="${{ needs.build.outputs.image_tag }}"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🎉 ${{ env.SERVICE_NAME }} 部署成功"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
+          echo "📍 Namespace: ${{ env.NAMESPACE }}"
+          echo "🌍 Environment: Staging"
+          echo ""
+          echo "Pod 狀態："
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=${{ env.SERVICE_NAME }}
+          echo ""
+          echo "Service 狀態："
+          kubectl get svc -n ${{ env.NAMESPACE }} ${{ env.SERVICE_NAME }}
+          echo ""
+          echo "🌐 訪問地址：https://pos-backend-web.passon.tw"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+

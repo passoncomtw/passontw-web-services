@@ -36,9 +36,11 @@
 
 | 層級 | 技術 |
 |------|------|
-| **前端框架** | React 16 + Redux + Redux Saga |
-| **構建工具** | Webpack (react-scripts) |
-| **容器化** | Docker (多階段構建) |
+| **前端框架** | React 17/19 + Redux + Redux Saga |
+| **開發語言** | JavaScript / TypeScript |
+| **構建工具** | Webpack / Vite |
+| **UI 框架** | Material-UI / Custom Components |
+| **容器化** | Docker (精簡版 Nginx 打包) |
 | **Web 服務器** | Nginx |
 | **編排工具** | Kubernetes + Kustomize |
 | **CI/CD** | GitHub Actions |
@@ -56,13 +58,29 @@
 | 環境 | URL | 狀態 |
 |------|-----|------|
 | **Staging** | https://token-admin-web.passon.tw | [![Status](https://img.shields.io/badge/status-online-success)](https://token-admin-web.passon.tw) |
-| **Production** | https://admin.passon.tw | [![Status](https://img.shields.io/badge/status-online-success)](https://admin.passon.tw) |
 
 **技術細節：**
 - 📁 路徑：`cmd/token-admin-web/`
+- ⚛️ 技術棧：React 17 + Redux + Webpack
 - 🐳 Dockerfile：`deploy/token-admin-web/Dockerfile`
 - ☸️ K8s 配置：`k8s/base/token-admin-web-*`
 - 🚀 工作流程：`.github/workflows/cicd-admin-web.yaml`
+
+### POS Backend Web
+
+POS 系統後台管理介面，提供商家 POS 相關的管理功能。
+
+| 環境 | URL | 狀態 |
+|------|-----|------|
+| **Staging** | https://pos-backend-web.passon.tw | [![Status](https://img.shields.io/badge/status-online-success)](https://pos-backend-web.passon.tw) |
+
+**技術細節：**
+- 📁 路徑：`cmd/pos-backend-web/`
+- ⚛️ 技術棧：React 19 + TypeScript + Vite + Material-UI
+- 🐳 Dockerfile：`deploy/pos-backend-web/Dockerfile`
+- ☸️ K8s 配置：`k8s/base/pos-backend-web-*`
+- 🚀 工作流程：`.github/workflows/cicd-pos-backend-web.yaml`
+- 📖 文檔：[部署指南](./POS_BACKEND_WEB_DEPLOYMENT.md)
 
 ---
 
@@ -70,63 +88,100 @@
 
 ### 前置需求
 
-- Node.js 16+ (本地開發)
-  - Docker 構建使用 Node.js 17（完整支援 `--openssl-legacy-provider`）
-- Yarn 或 npm
-- Docker (用於本地測試)
-- kubectl (用於部署)
-- kustomize (用於 K8s 配置管理)
+- Node.js 22+ (推薦使用 nvm 管理版本)
+  - `token-admin-web` 使用 Node.js 22 + Webpack
+  - `pos-backend-web` 使用 Node.js 22 + Vite
+- Yarn 1.22+ (推薦) 或 npm
+- Docker 20+ (用於本地測試和構建)
+- kubectl 1.25+ (用於部署)
+- kustomize 5+ (用於 K8s 配置管理)
 
 ### 本地開發
+
+**Token Admin Web (Webpack + React 17):**
 
 ```bash
 # 1. Clone 專案
 git clone https://github.com/passontw/passontw-web-services.git
 cd passontw-web-services
 
-# 2. 進入服務目錄
+# 2. 確保使用正確的 Node.js 版本
+nvm use 22
+
+# 3. 進入服務目錄
 cd cmd/token-admin-web
 
-# 3. 安裝依賴
+# 4. 安裝依賴
 yarn install
-
-# 4. 設置環境變數
-cat > .env.development.local << EOF
-REACT_APP_BASE_PATH=https://token-admin-api.passon.tw/
-EOF
 
 # 5. 啟動開發服務器
 yarn start
+# 或使用 Makefile
+make dev
 ```
 
 應用將在 http://localhost:3000 啟動。
 
-### 構建生產版本
-
-**方式 1：使用 Makefile（推薦）**
+**POS Backend Web (Vite + React 19 + TypeScript):**
 
 ```bash
-# 完整構建流程（安裝依賴 -> 構建 -> Docker 打包）
-make build-all
+# 1. 確保使用正確的 Node.js 版本
+nvm use 22
 
-# 或分步執行
-make install          # 安裝依賴
-make build           # 構建應用
-make build-docker    # 打包 Docker 鏡像
+# 2. 進入服務目錄
+cd cmd/pos-backend-web
 
-# 環境特定構建
-make build-staging      # 構建 Staging 環境
-make build-production   # 構建 Production 環境
+# 3. 安裝依賴
+yarn install
+
+# 4. 啟動開發服務器
+yarn dev
+# 或使用 Makefile
+make pos-dev
 ```
 
-**方式 2：手動構建**
+應用將在 http://localhost:5173 啟動。
+
+### 構建生產版本
+
+**Token Admin Web:**
 
 ```bash
+# 使用 Makefile（推薦）
+make build-all          # 完整流程（安裝 -> 構建 -> Docker）
+make install            # 安裝依賴
+make build              # 構建應用
+make build-docker       # 打包 Docker 鏡像
+
+# 手動構建
 cd cmd/token-admin-web
 yarn build
 ```
 
-構建產物將輸出到 `cmd/token-admin-web/build/` 目錄。
+構建產物輸出到 `cmd/token-admin-web/build/` 目錄。
+
+**POS Backend Web:**
+
+```bash
+# 使用 Makefile（推薦）
+make pos-build-all      # 完整流程（安裝 -> 構建 -> Docker）
+make pos-install        # 安裝依賴
+make pos-build          # 構建應用
+make pos-build-docker   # 打包 Docker 鏡像
+
+# 手動構建
+cd cmd/pos-backend-web
+yarn build:production
+```
+
+構建產物輸出到 `cmd/pos-backend-web/dist/` 目錄。
+
+**構建所有服務：**
+
+```bash
+make build-all-services  # 構建所有服務
+make clean-all           # 清理所有構建產物
+```
 
 ---
 

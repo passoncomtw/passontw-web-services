@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pos-backend-web-ingress-staging
+  namespace: passontw-services-staging
+  annotations:
+    # Cert-Manager 自動管理 SSL 證書
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # HTTPS 重定向
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # 安全標頭
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: SAMEORIGIN";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+    
+    # 代理配置
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - pos-backend-web.passon.tw
+    secretName: pos-backend-web-tls-staging
+  
+  rules:
+  - host: pos-backend-web.passon.tw
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pos-backend-web
+            port:
+              number: 80
+
