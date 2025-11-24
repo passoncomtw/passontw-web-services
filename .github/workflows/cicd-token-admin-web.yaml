@@ -4,7 +4,7 @@ on:
   push:
     branches: [develop]
     paths:
-      - '.github/workflows/cicd-admin-web.yaml'
+      - '.github/workflows/cicd-token-admin-web.yaml'
       - 'cmd/token-admin-web/**'
       - 'deploy/token-admin-web/**'
       - 'k8s/**'
