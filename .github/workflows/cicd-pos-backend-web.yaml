@@ -58,17 +58,23 @@ jobs:
           ulimit -n 65536
           echo "New limit: $(ulimit -n)"
 
+      - name: Setup Environment Variables
+        run: |
+          echo "🔧 設置環境變量..."
+          cd cmd/pos-backend-web
+          
+          # 從 GitHub Secrets 創建 .env 文件
+          echo "${{ secrets.DEV_POS_WEB }}" > .env
+          
+          echo "✅ 環境變量已設置"
+          echo "📋 環境變量列表："
+          cat .env | grep -v "^#" | grep "=" | cut -d= -f1 | sed 's/^/  - /'
+
       - name: Build Frontend Application
         env:
           NODE_OPTIONS: "--max-old-space-size=4096 --max-semi-space-size=1024"
-          # API Base URL - 使用 Nginx 反向代理到 Kubernetes 內部服務
-          VITE_API_BASE_URL: "/api"
         run: |
           echo "🔨 構建前端應用（Vite）..."
-          
-          # API 配置說明
-          echo "📍 API Base URL: ${VITE_API_BASE_URL}"
-          echo "ℹ️  使用 Nginx 反向代理到 Kubernetes 內部服務（token-app-api）"
           
           cd cmd/pos-backend-web
           
@@ -150,6 +156,11 @@ jobs:
           }
           
           echo "✅ 配置已應用"
+          
+          # 強制重啟 deployment 以拉取最新的 develop image
+          echo "🔄 強制重啟 Deployment（確保使用最新 image）..."
+          kubectl rollout restart deployment/${{ env.SERVICE_NAME }} -n ${{ env.NAMESPACE }}
+          echo "✅ Deployment 已重啟"
 
       - name: Wait for deployment
         id: wait

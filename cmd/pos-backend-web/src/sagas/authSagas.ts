@@ -9,18 +9,24 @@ import { AuthApiResponse } from '@/types/api'
 
 /**
  * 處理登入請求 Saga
+ * 
+ * 流程：
+ * 1. 呼叫登入 API
+ * 2. 成功後儲存 access_token 和 user 到 localStorage
+ * 3. 發送登入成功 action 到 Redux store
+ * 4. 失敗則發送錯誤 action
  */
 function* handleLoginRequest(action: LoginRequestAction) {
   try {
     const response: AuthApiResponse = yield call(loginAPI, action.payload)
     
     if (response.success) {
-      // 儲存 token 到 localStorage
-      localStorage.setItem('auth-token', response.data.token)
+      // 儲存 access_token 到 localStorage（遵循 DRY 原則，統一管理）
+      localStorage.setItem('auth-token', response.data.access_token)
       localStorage.setItem('auth-user', JSON.stringify(response.data.user))
       
-      // 發送登入成功 action
-      yield put(loginSuccess(response.data.user, response.data.token))
+      // 發送登入成功 action，更新 Redux store
+      yield put(loginSuccess(response.data.user, response.data.access_token))
     } else {
       yield put(loginError(response.message || '登入失敗'))
     }

@@ -3,7 +3,7 @@ import type { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axio
 
 // API 基礎配置 - 遵循 DRY 原則，統一管理 API 配置
 const server = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

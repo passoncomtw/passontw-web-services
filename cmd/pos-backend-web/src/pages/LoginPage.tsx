@@ -18,13 +18,13 @@ import { useForm } from '../hooks/useForm'
 import type { LoginCredentials } from '../types'
 
 /**
- * 登入表單驗證
+ * 登入表單驗證 - 遵循 DRY 原則，統一驗證邏輯
  */
 const validateLoginForm = (values: LoginCredentials) => {
   const errors: Partial<Record<keyof LoginCredentials, string>> = {}
 
-  if (!values.username) {
-    errors.username = '請輸入帳號'
+  if (!values.account) {
+    errors.account = '請輸入帳號'
   }
 
   if (!values.password) {
@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const { isAuthenticated, loading, error, login } = useAuthRedux()
 
-  // 表單處理
+  // 表單處理 - 使用 useForm Hook 管理表單狀態
   const {
     values,
     errors,
@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
     handleSubmit,
   } = useForm<LoginCredentials>({
     initialValues: {
-      username: '',
+      account: '',
       password: '',
     },
     validate: validateLoginForm,
@@ -144,15 +144,15 @@ const LoginPage: React.FC = () => {
                 margin="normal"
                 required
                 fullWidth
-                id="username"
+                id="account"
                 label="管理員帳號"
-                name="username"
+                name="account"
                 autoComplete="username"
                 autoFocus
-                value={values.username}
+                value={values.account}
                 onChange={handleChange}
-                error={!!errors.username}
-                helperText={errors.username}
+                error={!!errors.account}
+                helperText={errors.account}
                 disabled={loading || isSubmitting}
               />
               
@@ -188,7 +188,7 @@ const LoginPage: React.FC = () => {
                 測試帳號：
               </Typography>
               <Typography variant="body2" component="div">
-                • 超級管理員：admin / admin123
+                • 超級管理員：admin / a12345678
               </Typography>
             </Box>
           </CardContent>

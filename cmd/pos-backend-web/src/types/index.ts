@@ -1,17 +1,17 @@
 // 全域類型定義 - 遵循 DRY 原則，統一管理所有類型
 
-// 使用者相關類型
+// 使用者相關類型 - 匹配後端 API 回應
 export interface User {
-  id: string
-  username: string
-  email: string
+  user_id: string
+  account: string
   name: string
-  role: 'admin' | 'user'
+  role: string
+  email: string
 }
 
-// 登入憑證類型
+// 登入憑證類型 - 匹配後端 API 請求
 export interface LoginCredentials {
-  username: string
+  account: string
   password: string
 }
 
