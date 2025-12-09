@@ -1,5 +1,6 @@
 .PHONY: help install build build-docker clean check-node \
-        pos-install pos-build pos-build-docker pos-clean pos-dev
+        pos-install pos-build pos-build-docker pos-clean pos-dev \
+        run-token-admin-web run-pos-backend-web
 
 # 預設服務：token-admin-web
 SERVICE_NAME := token-admin-web
@@ -93,6 +94,10 @@ dev: ## 啟動 token-admin-web 開發伺服器
 	@echo "🚀 啟動開發伺服器..."
 	cd $(SERVICE_PATH) && yarn start
 
+run-token-admin-web: ## 執行 token-admin-web 服務
+	@echo "🚀 啟動 token-admin-web 服務..."
+	cd $(SERVICE_PATH) && yarn start
+
 ###############################################################################
 # POS Backend Web 相關目標
 ###############################################################################
@@ -134,6 +139,10 @@ pos-test-local: pos-build ## 本地測試 pos-backend-web 構建結果
 
 pos-dev: ## 啟動 pos-backend-web 開發伺服器
 	@echo "🚀 啟動 $(POS_SERVICE_NAME) 開發伺服器..."
+	cd $(POS_SERVICE_PATH) && yarn dev
+
+run-pos-backend-web: ## 執行 pos-backend-web 服務
+	@echo "🚀 啟動 pos-backend-web 服務..."
 	cd $(POS_SERVICE_PATH) && yarn dev
 
 ###############################################################################
