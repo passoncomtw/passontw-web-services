@@ -135,6 +135,10 @@ jobs:
             kubectl apply -k .
           }
           
+          # 確保重新拉取 develop tag（固定 tag 時避免使用舊 cache）
+          echo "♻️  rollout restart to force pull new image"
+          kubectl rollout restart deployment/${{ env.SERVICE_NAME }} -n ${{ env.NAMESPACE }}
+          
           echo "✅ 配置已應用"
 
       - name: Wait for deployment

@@ -17,6 +17,7 @@ spec:
       containers:
         - name: token-admin-web
           image: ghcr.io/passoncomtw/token-admin-web:placeholder
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
               name: http
