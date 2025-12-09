@@ -83,31 +83,14 @@ export const fetchGetWithToken = (url, customHeaders = {}, payload = {}) => {
     ...defaultHeaders,
     ...customHeaders,
   };
-  
-  console.log("🚀 ~ fetchGetWithToken ~ headers:", headers);
-  console.log("🚀 ~ Full URL:", localDomain(realUrl));
-  console.log("🚀 ~ Token:", headers.Authorization);
 
   return axios({
     method: 'get',
     url: localDomain(realUrl),
-    headers: headers,
-    // 確保 credentials 被包含
-    withCredentials: true,
+    headers,
   })
-  .then(response => {
-    console.log("Response headers:", response.headers);
-    return parseAxiosResponse(response);
-  })
-  .catch(error => {
-    console.error("Request error:", error);
-    if (error.response) {
-      console.error("Response status:", error.response.status);
-      console.error("Response headers:", error.response.headers);
-      console.error("Response data:", error.response.data);
-    }
-    return parseAxiosError(error);
-  });
+    .then(parseAxiosResponse)
+    .catch(parseAxiosError);
 };
 
 export const fetchPost = (url, payload) => {
