@@ -1,5 +1,5 @@
+import axios from 'axios';
 import QS from 'query-string';
-import isEmpty from 'lodash/isEmpty';
 import isUndefined from 'lodash/isUndefined';
 import { localDomain } from './route';
 
@@ -30,50 +30,93 @@ const validateCode = code => {
 
 const parseInternetError = error => {
   // Unexpect error，不會過 parseResponse;
-  if (error.message === 'Failed to fetch') {
+  if (error.message === 'Failed to fetch' || error.code === 'ERR_NETWORK') {
     throw getErrorFormat(500, UNEXPECT_ERROR_MSG);
-    return;
   }
   throw error;
 };
 
-const parseResponse = response => {
-  const { status: statusCode, ok: responseOK } = response;
+const parseAxiosError = error => {
+  if (error.response) {
+    // 服務器返回了錯誤響應
+    const { status, data } = error.response;
+    if ([500, 404].includes(status)) {
+      throw getErrorFormat(status, SERVER_ERROR_MSG);
+    }
+    // 返回標準格式的錯誤
+    throw getErrorFormat(status, data?.message || SERVER_ERROR_MSG);
+  } else if (error.request) {
+    // 請求已發送但沒有收到響應
+    throw getErrorFormat(500, UNEXPECT_ERROR_MSG);
+  } else {
+    // 請求設置時發生錯誤
+    throw getErrorFormat(500, UNEXPECT_ERROR_MSG);
+  }
+};
+
+const parseAxiosResponse = response => {
+  const { status: statusCode } = response;
   // 先把 500, 404 拉到更上層就丟出，避免不需要的 parse 造成錯誤
   if ([500, 404].includes(statusCode)) {
     throw getErrorFormat(statusCode, SERVER_ERROR_MSG);
   }
-  return response.json();
+  return response.data;
 };
 
-export const fetchGet = (url, customHeaders) => {
-  return fetch(localDomain(url), {})
-    .then(parseResponse)
-    .catch(parseInternetError);
+export const fetchGet = (url, customHeaders={}) => {
+  return axios
+    .get(localDomain(url), {
+      headers: {
+        ...defaultHeaders,
+        ...customHeaders,
+      },
+    })
+    .then(parseAxiosResponse)
+    .catch(parseAxiosError);
 };
 
-export const fetchGetWithToken = (url, customHeaders, payload = {}) => {
+export const fetchGetWithToken = (url, customHeaders = {}, payload = {}) => {
   const realUrl =
     Object.keys(payload).length === 0 ? url : `${url}?${QS.stringify(payload)}`;
 
-  return fetch(localDomain(realUrl), {
-    method: 'GET',
-    headers: {
-      ...customHeaders,
-    },
+  const headers = {
+    ...defaultHeaders,
+    ...customHeaders,
+  };
+  
+  console.log("🚀 ~ fetchGetWithToken ~ headers:", headers);
+  console.log("🚀 ~ Full URL:", localDomain(realUrl));
+  console.log("🚀 ~ Token:", headers.Authorization);
+
+  return axios({
+    method: 'get',
+    url: localDomain(realUrl),
+    headers: headers,
+    // 確保 credentials 被包含
+    withCredentials: true,
   })
-    .then(parseResponse)
-    .catch(parseInternetError);
+  .then(response => {
+    console.log("Response headers:", response.headers);
+    return parseAxiosResponse(response);
+  })
+  .catch(error => {
+    console.error("Request error:", error);
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+      console.error("Response data:", error.response.data);
+    }
+    return parseAxiosError(error);
+  });
 };
 
 export const fetchPost = (url, payload) => {
-  return fetch(localDomain(url), {
-    method: 'POST',
-    headers: defaultHeaders,
-    body: JSON.stringify(payload),
-  })
-    .then(parseResponse)
-    .catch(parseInternetError);
+  return axios
+    .post(localDomain(url), payload, {
+      headers: defaultHeaders,
+    })
+    .then(parseAxiosResponse)
+    .catch(parseAxiosError);
 };
 
 export const fetchPostWithToken = (
@@ -82,13 +125,19 @@ export const fetchPostWithToken = (
   payload = {},
   method = 'POST'
 ) => {
-  return fetch(localDomain(url), {
+  const headers = {
+    ...defaultHeaders,
+    ...customHeaders,
+  };
+
+  return axios({
+    url: localDomain(url),
     method,
-    headers: { ...defaultHeaders, ...customHeaders },
-    body: JSON.stringify(payload),
+    headers,
+    data: payload,
   })
-    .then(parseResponse)
-    .catch(parseInternetError);
+    .then(parseAxiosResponse)
+    .catch(parseAxiosError);
 };
 
 export const fetchPostFormDataWithToken = (
@@ -99,13 +148,17 @@ export const fetchPostFormDataWithToken = (
 ) => {
   const formData = new FormData();
   formData.append('file', payload);
-  return fetch(localDomain(url), {
+
+  return axios({
+    url: localDomain(url),
     method,
-    headers: { ...customHeaders },
-    body: formData,
+    headers: {
+      ...customHeaders,
+    },
+    data: formData,
   })
-    .then(parseResponse)
-    .catch(parseInternetError);
+    .then(parseAxiosResponse)
+    .catch(parseAxiosError);
 };
 
 export const fetchPostWithTokenAndQS = (
@@ -118,11 +171,17 @@ export const fetchPostWithTokenAndQS = (
   const realUrl =
     Object.keys(qs).length === 0 ? url : `${url}?${QS.stringify(qs)}`;
 
-  return fetch(localDomain(realUrl), {
+  const headers = {
+    ...defaultHeaders,
+    ...customHeaders,
+  };
+
+  return axios({
+    url: localDomain(realUrl),
     method,
-    headers: { ...defaultHeaders, ...customHeaders },
-    body: JSON.stringify(payload),
+    headers,
+    data: payload,
   })
-    .then(parseResponse)
-    .catch(parseInternetError);
+    .then(parseAxiosResponse)
+    .catch(parseAxiosError);
 };

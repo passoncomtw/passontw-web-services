@@ -8,10 +8,13 @@ import SearchPanel from './components/SearchPanel';
 import { usePagination } from '~/hooks';
 
 const DEFAULT_PAYLOAD = {
-  type: '',
+  account: '',
+  email: '',
+  name: '',
   status: '',
-  orderType: '',
-  transactionType: '',
+  orderStatus: '',
+  transactionStatus: '',
+  isMerchant: '',
   keyWordCondition: 'account',
   keyword: '',
 };

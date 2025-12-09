@@ -13,8 +13,8 @@ export const ORDER_TYPE_TEXT = {
 
 const KEYWORD_TEXT = {
   account: '帳號',
-  username: '暱稱',
-  mail: '郵箱',
+  name: '暱稱',
+  email: '郵箱',
 };
 
 const onChange =
@@ -63,30 +63,42 @@ const SearchPanel = props => {
         </Grid>
         <Grid sixth>
           <SelectInput
-            title='會員類型'
-            name='type'
-            value={queryPayload.type}
-            items={toSearchItems(USER_TYPE_TEXT)}
+            title='是否為商家'
+            name='isMerchant'
+            value={queryPayload.isMerchant}
+            items={toSearchItems({
+              '': '全部',
+              'false': '一般會員',
+              'true': '商家',
+            })}
             onChange={handleOnChange}
             labelProps={{ size: 'sm' }}
           />
         </Grid>
         <Grid sixth>
           <SelectInput
-            title='交易類型'
-            name='transactionType'
-            value={queryPayload.transactionType}
-            items={toSearchItems(ORDER_TYPE_TEXT)}
+            title='交易狀態'
+            name='transactionStatus'
+            value={queryPayload.transactionStatus}
+            items={toSearchItems({
+              '': '全部',
+              0: '凍結',
+              1: '啟用',
+            })}
             onChange={handleOnChange}
             labelProps={{ size: 'sm' }}
           />
         </Grid>
         <Grid sixth>
           <SelectInput
-            title='掛單類型'
-            name='orderType'
-            value={queryPayload.orderType}
-            items={toSearchItems(ORDER_TYPE_TEXT)}
+            title='掛單狀態'
+            name='orderStatus'
+            value={queryPayload.orderStatus}
+            items={toSearchItems({
+              '': '全部',
+              0: '凍結',
+              1: '啟用',
+            })}
             onChange={handleOnChange}
             labelProps={{ size: 'sm' }}
           />

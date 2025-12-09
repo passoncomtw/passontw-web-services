@@ -21,11 +21,12 @@ module.exports = function override(config, env) {
   // 使用 DefinePlugin 將 process.env 替換為實際值
   config.plugins.push(
     new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(env),
-      'process.env.PUBLIC_URL': JSON.stringify(process.env.PUBLIC_URL || ''),
-      'process.env.REACT_APP_BASE_PATH': JSON.stringify(
-        process.env.REACT_APP_BASE_PATH || 'https://token-admin-api.passon.tw/'
-      ),
+      'process.env': JSON.stringify({
+        NODE_ENV: env,
+        PUBLIC_URL: process.env.PUBLIC_URL || '',
+        REACT_APP_BASE_PATH:
+          process.env.REACT_APP_BASE_PATH || 'https://token-admin-api.passon.tw/',
+      }),
     })
   );
 
