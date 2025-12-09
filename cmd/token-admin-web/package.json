@@ -28,6 +28,7 @@
     "@material-ui/icons": "^4.11.2",
     "@material-ui/lab": "^4.0.0-alpha.57",
     "@material-ui/pickers": "^3.2.10",
+    "axios": "^1.6.0",
     "classnames": "^2.2.6",
     "date-fns": "^2.16.1",
     "flux-constants": "^0.2.2",
