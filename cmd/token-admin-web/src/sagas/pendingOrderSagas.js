@@ -53,6 +53,23 @@ export function* getPendingOrderListSaga({ payload }) {
     apiResult: getPendingOrderListResult,
     payload: compactObject(payload),
     action: types.GET_PENDING_ORDER_LIST,
-    resultHandler: ({ rows, count }) => ({ data: rows, count }),
+    resultHandler: data => {
+      const rows = Array.isArray(data) ? data : data?.data || [];
+      const totalCount =
+        (typeof data === 'object' && data?.count != null && Number.isFinite(data.count))
+          ? data.count
+          : rows.length;
+      const pageSize = payload?.size || 10;
+      const totalPageCount =
+        (typeof data === 'object' && data?.totalPageCount != null && Number.isFinite(data.totalPageCount))
+          ? data.totalPageCount
+          : Math.ceil(totalCount / pageSize);
+
+      return {
+        data: rows,
+        totalCount,
+        totalPageCount,
+      };
+    },
   });
 }

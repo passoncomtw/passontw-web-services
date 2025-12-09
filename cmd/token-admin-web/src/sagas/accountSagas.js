@@ -14,6 +14,14 @@ export function* getAccountListSaga({ payload }) {
     apiResult: getBEUserListResult,
     payload: compactObject(payload),
     action: types.GET_ACCOUNT_LIST,
+    resultHandler: data => {
+      const rows = Array.isArray(data) ? data : data?.data || [];
+      const count =
+        (typeof data === 'object' && data?.count != null && Number.isFinite(data.count))
+          ? data.count
+          : rows.length;
+      return { rows, count };
+    },
   });
 }
 

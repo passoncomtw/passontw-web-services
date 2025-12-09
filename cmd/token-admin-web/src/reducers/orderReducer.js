@@ -15,7 +15,13 @@ const reducer = (order = orderState, { type, payload }) => {
         orderType: 2,
       });
     case types.GET_ORDER_LIST_SUCCESS:
-      return order.merge(fromJS({ list: payload.data }));
+      return order.merge(
+        fromJS({
+          list: payload.data || [],
+          totalCount: payload.totalCount || 0,
+          totalPageCount: payload.totalPageCount || 0,
+        })
+      );
     case types.GET_ORDER_LIST:
     case types.GET_ORDER_LIST_ERROR:
     default:

@@ -24,7 +24,13 @@ const reducer = (pendingOrder = pendingOrderState, { type, payload }) => {
         status: PENDING_STATUS.PENDING,
       });
     case types.GET_PENDING_ORDER_LIST_SUCCESS:
-      return pendingOrder.merge(fromJS({ list: payload.data }));
+      return pendingOrder.merge(
+        fromJS({
+          list: payload.data || [],
+          totalCount: payload.totalCount || 0,
+          totalPageCount: payload.totalPageCount || 0,
+        })
+      );
     case types.GET_PENDING_ORDER_LIST:
     case types.GET_PENDING_ORDER_LIST_ERROR:
     default:
