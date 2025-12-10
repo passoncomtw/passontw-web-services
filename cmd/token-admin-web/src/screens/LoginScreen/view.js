@@ -67,9 +67,13 @@ class LoginScreen extends React.PureComponent {
       <form>
         <Container className={classes.container}>
           <Panel className={classes.loginPanel}>
-            <PanelBody>
+            <PanelBody className={classes.panelBody}>
               <Box className={classes.logoBox}>
-                <img src={LoginLogo} alt='LoginLogo' />
+                <img
+                  src={LoginLogo}
+                  alt='LoginLogo'
+                  className={classes.logoImage}
+                />
               </Box>
               <Box className={classes.inputBox}>
                 <TextInput
@@ -94,7 +98,7 @@ class LoginScreen extends React.PureComponent {
                   errorMessage={this.state.errors.password}
                 />
               </Box>
-              <Box pt={4}>
+              <Box className={classes.buttonBox}>
                 <Button
                   text='登錄'
                   type='primary'
@@ -103,7 +107,7 @@ class LoginScreen extends React.PureComponent {
                   onClick={this.onConfirm}
                 />
               </Box>
-              <Box pt={4} className={classes.version}>
+              <Box className={classes.version}>
                 <Typography variant='h5'>
                   V {`${packageConfig.version}`}
                 </Typography>
@@ -121,35 +125,75 @@ const styles = theme => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',
-    width: '100vw',
+    minHeight: '100vh',
+    width: '100%',
     backgroundColor: theme.colors.bodybg,
+    padding: theme.spacing(2),
+    boxSizing: 'border-box',
   },
   loginPanel: {
-    width: '30%',
-    maxWidth: 600,
+    width: '100%',
+    maxWidth: 500,
     overflow: 'hidden',
     textAlign: 'center',
     backgroundColor: theme.colors.error,
-    [theme.breakpoints.down('md')]: {
-      width: '90%',
+    [theme.breakpoints.down('sm')]: {
+      maxWidth: '100%',
+    },
+  },
+  panelBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    padding: `${theme.spacing(4)}px ${theme.spacing(3)}px !important`,
+    [theme.breakpoints.down('sm')]: {
+      padding: `${theme.spacing(3)}px ${theme.spacing(2)}px !important`,
     },
   },
   logoBox: {
-    height: 'auto',
+    display: 'flex',
     justifyContent: 'center',
-    paddingTop: theme.spacing(10),
-    paddingBottom: theme.spacing(2),
+    alignItems: 'center',
+    width: '100%',
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(3),
+    overflow: 'hidden',
+    [theme.breakpoints.down('sm')]: {
+      paddingTop: theme.spacing(3),
+      paddingBottom: theme.spacing(2),
+    },
+  },
+  logoImage: {
+    maxWidth: '100%',
+    maxHeight: '120px',
+    width: 'auto',
+    height: 'auto',
+    objectFit: 'contain',
+    display: 'block',
   },
   inputBox: {
     textAlign: 'left',
-    padding: '0px 65px',
-    [theme.breakpoints.down('md')]: {
-      padding: '15px 30px',
+    width: '100%',
+    padding: `0 ${theme.spacing(2)}px`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+    [theme.breakpoints.down('sm')]: {
+      padding: `0 ${theme.spacing(1)}px`,
+    },
+  },
+  buttonBox: {
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+    width: '100%',
+    [theme.breakpoints.down('sm')]: {
+      paddingTop: theme.spacing(3),
     },
   },
   version: {
     color: theme.colors.greylight,
+    paddingTop: theme.spacing(2),
+    paddingBottom: theme.spacing(1),
   },
 });
 
