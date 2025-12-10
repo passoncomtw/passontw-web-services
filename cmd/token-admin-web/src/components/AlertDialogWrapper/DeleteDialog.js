@@ -7,7 +7,7 @@ export const DeleteDialog = ({ dialogType, text, ...props }) => {
 
   return (
     <AlertDialogWrapper level='warning' open={open} {...props}>
-      <Typography varient='h4'>您确定要删除{text}吗？</Typography>
+      <Typography varient='h4'>您確定要刪除{text}嗎？</Typography>
     </AlertDialogWrapper>
   );
 };

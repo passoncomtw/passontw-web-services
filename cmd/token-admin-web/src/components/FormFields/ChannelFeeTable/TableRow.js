@@ -79,7 +79,7 @@ const ChannelFeeTableRow = ({
         <Button
           type='secondary'
           hide={isFirstRow || isLastRow}
-          text='删除'
+          text='刪除'
           onClick={() => onDelete(index)}
         />
       </TableCell>

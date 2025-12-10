@@ -15,8 +15,9 @@ export const UnlockDialog = ({ open, text, onCancel, onConfirm, ...props }) => {
       onCancel={onCancel}
       onExit={onCancel}
       onConfirm={handleOnConfirm}
-      {...props}>
-      <Typography varient='h4'>您确定要解除锁定吗？</Typography>
+      {...props}
+    >
+      <Typography varient='h4'>您確定要解除鎖定嗎？</Typography>
     </AlertDialogWrapper>
   );
 };

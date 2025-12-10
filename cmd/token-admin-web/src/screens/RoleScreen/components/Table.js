@@ -27,7 +27,7 @@ const Table = ({ data, onDelete, onDetail }) => {
               <TableCell operator>
                 <Button
                   type='secondary'
-                  text='删除角色'
+                  text='刪除角色'
                   onClick={onDelete(id)}
                 />
               </TableCell>

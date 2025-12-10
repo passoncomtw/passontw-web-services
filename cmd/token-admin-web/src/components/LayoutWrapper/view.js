@@ -175,7 +175,7 @@ class LayoutWrapper extends React.PureComponent {
 
   showAlertDialog = type => () => {
     this.props.showAlertDialog({
-      alertMessage: '是否确定登出？',
+      alertMessage: '是否確定登出？',
       alertType: type,
       level: 'info',
     });
