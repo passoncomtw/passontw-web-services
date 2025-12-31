@@ -23,7 +23,7 @@ const AccountsTable = ({ isUser = false, data, handleDelete }) => {
         {data.map((item, index) => (
           <TableRow key={`${item.get('accountId')}-${index}`}>
             {!isUser && <TableCell>{item.get('account')}</TableCell>}
-            <TableCell>{item.get('username')}</TableCell>
+            <TableCell>{item.get('name')}</TableCell>
             <TableCell>{item.get('bankName')}</TableCell>
             <TableCell>{toHashText(item.get('cardNumber'))}</TableCell>
             <TableCell>{item.get('branchName')}</TableCell>
