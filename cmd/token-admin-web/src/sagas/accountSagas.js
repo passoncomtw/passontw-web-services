@@ -15,11 +15,10 @@ export function* getAccountListSaga({ payload }) {
     payload: compactObject(payload),
     action: types.GET_ACCOUNT_LIST,
     resultHandler: data => {
-      const rows = Array.isArray(data) ? data : data?.data || [];
-      const count =
-        (typeof data === 'object' && data?.count != null && Number.isFinite(data.count))
-          ? data.count
-          : rows.length;
+      // API 回傳格式: { items: [...], code: "200", pagination: { totalCount: 10, page: 1, size: 10 } }
+      // sagaUtils 會提取 resp.data，所以這裡的 data 是整個響應對象
+      const rows = data.items;
+      const count = data.pagination.totalCount;
       return { rows, count };
     },
   });

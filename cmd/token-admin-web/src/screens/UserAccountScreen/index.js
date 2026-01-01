@@ -5,9 +5,14 @@ import {
   getUserAccountListAction,
 } from '~/actions/userAccountActions';
 
-const mapStateToProps = ({ userAccount }) => ({
-  list: userAccount.get('data'),
-});
+const mapStateToProps = ({ userAccount }) => {
+  const data = userAccount.get('data');
+  const count = userAccount.get('count') || 0;
+  return {
+    list: data,
+    totalCount: count,
+  };
+};
 
 const mapDispatchToProps = dispatch => ({
   handleGetList: payload => {

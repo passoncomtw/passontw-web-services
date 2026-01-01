@@ -6,11 +6,13 @@ import {
   getOrderListAction,
 } from '~/actions/orderActions';
 
-const mapStateToProps = ({ order }) => ({
-  data: order.get('list'),
-  totalCount: order.get('totalCount'),
-  totalPageCount: order.get('totalPageCount'),
-});
+const mapStateToProps = ({ order }) => {
+  return {
+    data: order.get('list'),
+    totalCount: order.get('totalCount'),
+    totalPageCount: order.get('totalPageCount'),
+  };
+};
 
 const mapDispatchToProps = dispatch => ({
   handleCancelOrder: payload => {

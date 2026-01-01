@@ -39,19 +39,13 @@ export function* getOrderListSaga({ payload }) {
     apiResult: getOrderListResult,
     payload: compactObject(payload),
     action: types.GET_ORDER_LIST,
-    resultHandler: data => {
-      // API 回傳格式: { success: true, data: [...], code: 'SUCCESS' }
-      // sagaUtils 會把 resp.data 傳進來，因此這裡的 data 可能是陣列或物件
-      const rows = Array.isArray(data) ? data : data?.data || [];
-      const totalCount =
-        (typeof data === 'object' && data?.count != null && Number.isFinite(data.count))
-          ? data.count
-          : rows.length;
-      const pageSize = payload?.size || 10;
-      const totalPageCount =
-        (typeof data === 'object' && data?.totalPageCount != null && Number.isFinite(data.totalPageCount))
-          ? data.totalPageCount
-          : Math.ceil(totalCount / pageSize);
+    resultHandler: resp => {
+      // API 回傳格式: { items: [...], code: '200', pagination: { totalCount: 2, page: 1, size: 10 } }
+      // parseAxiosResponse 返回 response.data，所以 resp 是整個響應對象
+      const rows = resp?.items || [];
+      const totalCount = resp?.pagination?.totalCount || 0;
+      const pageSize = payload?.size || resp?.pagination?.size || 10;
+      const totalPageCount = Math.ceil(totalCount / pageSize) || 1;
 
       return {
         data: rows,

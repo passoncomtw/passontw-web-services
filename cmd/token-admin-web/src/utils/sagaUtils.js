@@ -46,12 +46,11 @@ export default function* fetchAPIResult({
       customHeaders,
       payload,
     });
-    const { data } = resp;
     if (isFunction(resultHandler)) {
-      return yield put(okFetch(resultHandler(data), action, message));
+      return yield put(okFetch(resultHandler(resp), action, message));
     }
 
-    yield put(okFetch(data, action, message));
+    yield put(okFetch(resp, action, message));
     if (onSuccess) onSuccess();
   } catch (error) {
     yield put(errFetch(error, action));

@@ -9,14 +9,18 @@ import {
 import { allRoles } from '~/constants/mock/allRoles';
 import { listToMap } from '~/utils/format';
 
-const mapStateToProps = ({ account }) => ({
-  records: account.get('rows'),
-  allRoles: allRoles.toJS(),
-  allRoleMap: listToMap(allRoles, 'roleId', 'roleName'),
-  roles: [],
-  pages: parseInt(account.get('count') / 10) + 1,
-  total: account.get('count'),
-});
+const mapStateToProps = ({ account }) => {
+  const count = account.get('count') || 0;
+  const size = 10; // 每頁顯示數量
+  return {
+    records: account.get('rows'),
+    allRoles: allRoles.toJS(),
+    allRoleMap: listToMap(allRoles, 'roleId', 'roleName'),
+    roles: [],
+    pages: Math.ceil(count / size) || 1,
+    total: count,
+  };
+};
 
 const mapDispatchToProps = dispatch => ({
   handleGetAction: payload => {

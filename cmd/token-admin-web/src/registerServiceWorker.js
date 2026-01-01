@@ -9,7 +9,6 @@
 // This link also includes instructions on opting out of this behavior.
 
 const { NODE_ENV, REACT_APP_BASE_PATH } = process.env;
-console.log("🚀 ~ register ~ REACT_APP_BASE_PATH:", REACT_APP_BASE_PATH)
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||

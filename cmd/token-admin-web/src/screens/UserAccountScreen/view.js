@@ -16,7 +16,12 @@ const DEFAULT_PAYLOAD = {
   size: 10,
 };
 
-const UserAccountScreen = ({ handleGetList, handleDeleteAccount, list }) => {
+const UserAccountScreen = ({
+  handleGetList,
+  handleDeleteAccount,
+  list,
+  totalCount,
+}) => {
   const {
     onPageChange,
     onSizeChange,
@@ -61,8 +66,8 @@ const UserAccountScreen = ({ handleGetList, handleDeleteAccount, list }) => {
         <Pagination
           size={size}
           page={page}
-          totalCount={100}
-          totalPageCount={10}
+          totalCount={totalCount || 0}
+          totalPageCount={Math.ceil((totalCount || 0) / size) || 1}
           onSizeChange={onSizeChange}
           onPageChange={onPageChange}
         />

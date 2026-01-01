@@ -13,11 +13,7 @@ import Typography from '~/components/Typography';
 import Button from '~/components/Buttons';
 import ConfirmDialog from '~/components/AlertDialogWrapper/ConfirmDialog';
 import CancelOrderDialog from '~/components/CancelOrderDialog';
-import {
-  ORDER_TYPE_TEXT,
-  ORDER_TYPE_LIST,
-  TRANSACTION_TYPE_TEXT,
-} from '~/constants/status.config';
+import { ORDER_TYPE_TEXT, ORDER_TYPE_LIST } from '~/constants/status.config';
 import colors from '~/theme/colors';
 import { toDateTimeText } from '~/utils/dateUtils';
 
@@ -41,12 +37,30 @@ const DIALOG_TYPE = {
 };
 
 const BankCell = ({ bank }) => {
+  // 處理空對象或 undefined 的情況
+  if (
+    !bank ||
+    bank.isEmpty ||
+    (!bank.get && typeof bank === 'object' && Object.keys(bank).length === 0)
+  ) {
+    return <TableCell>-</TableCell>;
+  }
+
+  const name = bank.get ? bank.get('name') : bank.name;
+  const bankName = bank.get ? bank.get('bankName') : bank.bankName;
+  const branchName = bank.get ? bank.get('branchName') : bank.branchName;
+  const cardNumber = bank.get ? bank.get('cardNumber') : bank.cardNumber;
+
+  if (!name && !bankName && !branchName && !cardNumber) {
+    return <TableCell>-</TableCell>;
+  }
+
   return (
     <TableCell account>
-      <Typography varient='h4'>{bank.get('name')}</Typography>
-      <Typography varient='h4'>{bank.get('bankName')}</Typography>
-      <Typography varient='h4'>{bank.get('branchName')}</Typography>
-      <Typography varient='h4'>{bank.get('cardNumber')}</Typography>
+      {name && <Typography varient='h4'>{name}</Typography>}
+      {bankName && <Typography varient='h4'>{bankName}</Typography>}
+      {branchName && <Typography varient='h4'>{branchName}</Typography>}
+      {cardNumber && <Typography varient='h4'>{cardNumber}</Typography>}
     </TableCell>
   );
 };
@@ -77,8 +91,13 @@ const TransationTimeCell = ({
   if (ORDER_TYPE_KEY === 'CANCEL') {
     return <TableCell>-</TableCell>;
   }
-  if (ORDER_TYPE_KEY === 'SUCCESS') {
-    return <TableCell>{finishAt}</TableCell>;
+  if (ORDER_TYPE_KEY === 'SUCCESS' && finishAt) {
+    // finishAt 可能是時間戳（數字）或日期字符串
+    const formattedFinishAt =
+      typeof finishAt === 'number'
+        ? toDateTimeText(new Date(finishAt * 1000))
+        : toDateTimeText(finishAt);
+    return <TableCell>{formattedFinishAt}</TableCell>;
   }
 
   // TODO：真的串 API 的時候計算已耗時 BY createAt ?
@@ -124,6 +143,18 @@ const OrderTable = ({
     setOpenDialogType(type);
     setSelectedId(targetId);
   };
+
+  if (data.isEmpty())
+    return (
+      <TableRow>
+        <TableCell colSpan={headers.length} align='center'>
+          <Typography variant='body2' color='text.secondary'>
+            暫無訂單資料
+          </Typography>
+        </TableCell>
+      </TableRow>
+    );
+
   return (
     <>
       <ConfirmDialog
@@ -143,32 +174,39 @@ const OrderTable = ({
           {data.map(item => {
             const id = item.get('id');
             const amount = item.get('amount');
-            const orderType = item.get('orderType');
-            const transactionType = item.get('transactionType');
+            // API 返回的是 status，映射為 orderType
+            // status: 0=待處理, 4=已完成
+            const status = item.get('status');
+            const orderType = status; // 直接使用 status 作為 orderType
             const hideAction = ['SUCCESS', 'CANCEL'].includes(
               ORDER_TYPE_LIST[orderType]
             );
 
+            const beneficiary = item.get('beneficiary');
+            const beneficiaryName = beneficiary
+              ? beneficiary.get
+                ? beneficiary.get('name')
+                : beneficiary.name
+              : '-';
+            const createdAt = item.get('createdAt');
+            const finishAt = item.get('finishAt');
+            const cancelReason = item.get('cancelReason');
+
             return (
               <TableRow key={`table_row_${id}`}>
-                <TableCell>{toDateTimeText(item.get('createdAt'))}</TableCell>
-                {!isUser && (
-                  <TableCell>{item.getIn(['beneficiary', 'name'])}</TableCell>
-                )}
+                <TableCell>{toDateTimeText(new Date(createdAt))}</TableCell>
+                {!isUser && <TableCell>{beneficiaryName}</TableCell>}
                 <TableCell>{id}</TableCell>
-                <TableCell>{formatMoney(amount)}</TableCell>
-                <TableCell>{formatMoney(amount)}</TableCell>
+                <TableCell>{formatMoney(amount || 0)}</TableCell>
+                <TableCell>{formatMoney(amount || 0)}</TableCell>
                 <BankCell bank={item.get('senderBankcard')} />
                 <BankCell bank={item.get('beneficiaryBankcard')} />
-                <OrderStatusCell
-                  orderType={item.get('status')}
-                  reason={item.get('reason')}
-                />
+                <OrderStatusCell orderType={status} reason={cancelReason} />
                 <TransationTimeCell
                   orderType={orderType}
-                  transationTimeType={item.get('transationTime')}
-                  createAt={item.get('finishAt')}
-                  finishAt={item.get('finishAt')}
+                  transationTimeType={null}
+                  createAt={createdAt}
+                  finishAt={null}
                 />
                 <TableCell operator>
                   <Button

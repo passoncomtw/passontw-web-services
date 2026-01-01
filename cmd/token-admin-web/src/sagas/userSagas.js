@@ -38,10 +38,10 @@ export function* getUserListSaga({ payload }) {
       // parseAxiosResponse 返回 response.data，也就是整個響應對象
       // sagaUtils 會提取 { data }，所以這裡的 data 是用戶數組
       // 需要轉換為 { rows: [...], count: ... } 格式
-      const rows = Array.isArray(data) ? data : [];
+      const rows = data.items;
       return {
         rows,
-        count: rows.length,
+        count: data.pagination.totalCount,
       };
     },
   });

@@ -7,15 +7,11 @@ export function* getBankListSaga({ payload }) {
     apiResult: getBanksResult,
     action: types.GET_BANK_LIST,
     payload,
-    resultHandler: banks => ({ list: banks }),
+    resultHandler: resp => ({ list: resp.items }),
   });
 }
 
 export function* editBankSaga({ payload }) {
-  // yield put({
-  //   type: types.EDIT_BANK_SUCCESS,
-  //   payload,
-  // });
   return yield fetchAPIResult({
     apiResult: updateBankResult,
     action: types.EDIT_BANK,
