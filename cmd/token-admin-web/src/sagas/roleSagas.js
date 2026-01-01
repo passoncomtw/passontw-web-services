@@ -14,12 +14,11 @@ export function* getRoleListSaga({ payload }) {
     apiResult: getRoleListResult,
     payload,
     action: types.GET_ROLE_LIST,
-    resultHandler: data => {
-      const rows = Array.isArray(data) ? data : data?.data || [];
-      const count =
-        (typeof data === 'object' && data?.count != null && Number.isFinite(data.count))
-          ? data.count
-          : rows.length;
+    resultHandler: resp => {
+      // API 回傳格式: { items: [...], code: "200" }
+      // parseAxiosResponse 返回 response.data，所以 resp 是整個響應對象
+      const rows = resp?.items || [];
+      const count = rows.length;
       return { rows, count };
     },
   });

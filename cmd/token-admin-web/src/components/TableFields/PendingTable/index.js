@@ -115,7 +115,7 @@ const PendingTable = ({
               : DIALOG_TYPE.OPEN;
             return (
               <TableRow key={`table_row_${id}`}>
-                <TableCell>{item.get('createdAt')}</TableCell>
+                <TableCell>{item.get('createAt')}</TableCell>
                 <TableCell>{item.get('id')}</TableCell>
                 {!isUser && (
                   <TableCell>{item.getIn(['user', 'account'])}</TableCell>

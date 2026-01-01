@@ -10,13 +10,17 @@ import {
 } from '~/actions/roleActions';
 import { getPermissionTreeAction } from '~/actions/settingActions';
 
-const mapStateToProps = ({ role, setting }) => ({
-  list: role.get('rows'),
-  total: role.get('count'),
-  pages: parseInt(role.get('count') / 10) + 1,
-  permissionTree: setting.get('permissionTree'),
-  childrenIdsByParentId: getChildrenIdsByParentId(allPermissions),
-});
+const mapStateToProps = ({ role, setting }) => {
+  const count = role.get('count') || 0;
+  const size = 10; // 每頁顯示數量
+  return {
+    list: role.get('rows'),
+    total: count,
+    pages: Math.ceil(count / size) || 1,
+    permissionTree: setting.get('permissionTree'),
+    childrenIdsByParentId: getChildrenIdsByParentId(allPermissions),
+  };
+};
 
 const mapDispatchToProps = dispatch => ({
   handleGetPermissionTree: () => {

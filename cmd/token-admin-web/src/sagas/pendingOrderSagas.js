@@ -53,17 +53,13 @@ export function* getPendingOrderListSaga({ payload }) {
     apiResult: getPendingOrderListResult,
     payload: compactObject(payload),
     action: types.GET_PENDING_ORDER_LIST,
-    resultHandler: data => {
-      const rows = Array.isArray(data) ? data : data?.data || [];
-      const totalCount =
-        (typeof data === 'object' && data?.count != null && Number.isFinite(data.count))
-          ? data.count
-          : rows.length;
-      const pageSize = payload?.size || 10;
-      const totalPageCount =
-        (typeof data === 'object' && data?.totalPageCount != null && Number.isFinite(data.totalPageCount))
-          ? data.totalPageCount
-          : Math.ceil(totalCount / pageSize);
+    resultHandler: resp => {
+      // API 回傳格式: { code: "200", items: [...], pagination: { page: 1, size: 10, totalCount: 100 } }
+      // parseAxiosResponse 返回 response.data，所以 resp 是整個響應對象
+      const rows = resp.items || [];
+      const totalCount = resp.pagination.totalCount;
+      const pageSize = resp.pagination.size;
+      const totalPageCount = Math.ceil(totalCount / pageSize);
 
       return {
         data: rows,
