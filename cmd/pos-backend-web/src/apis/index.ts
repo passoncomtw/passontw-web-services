@@ -24,14 +24,18 @@ server.interceptors.request.use(
   }
 )
 
+// Redux Persist 的 key（需與 configureStore 的 persistConfig.key 一致），401 時一併清除，避免重載後還原成已登入造成登入/merchants 無限重導
+const REDUX_PERSIST_KEY = 'persist:react-mui-redux-saga-root'
+
 // 回應攔截器 - 統一處理錯誤
 server.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // 清除過期的認證資訊
+      // 清除過期的認證資訊（含 redux-persist，否則重載後會還原 isAuthenticated 導致 login ↔ merchants 無限重導）
       localStorage.removeItem('auth-token')
       localStorage.removeItem('auth-user')
+      localStorage.removeItem(REDUX_PERSIST_KEY)
       window.location.href = '/login'
     }
     return Promise.reject(error)
