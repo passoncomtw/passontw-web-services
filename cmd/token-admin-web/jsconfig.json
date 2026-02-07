@@ -5,6 +5,8 @@
       "~/*": [
         "*"
       ]
-    }
+    },
+    "skipLibCheck": true,
+    "types": []
   }
 }
